@@ -1,0 +1,26 @@
+name: FlyController
+version: 1.0.0
+main: com.flyaway.flycontroller.FlyPlugin
+api-version: 1.21
+author: FlyAwayMaking
+website: https://github.com/flyawaymaking
+depend: [CoinsEngine]
+
+commands:
+  mfly:
+    description: Система временного полёта
+    usage: /<command> [info|deposit|activate|continue|reload]
+  flyspeed:
+    description: Установка скорости полёта
+    usage: /<command> <скорость>
+
+permissions:
+  flycontroller.mfly:
+    description: Доступ к системе временного полёта
+    default: op
+  flycontroller.flyspeed:
+    description: Доступ к команде установки скорости полёта
+    default: op
+  flycontroller.admin:
+    description: Доступ к команде перезагрузки конфига
+    default: op
