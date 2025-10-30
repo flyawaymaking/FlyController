@@ -68,7 +68,7 @@ public class MFlyCommand implements CommandExecutor, TabCompleter {
             case "reload":
                 if (sender.hasPermission("flycontroller.admin")) {
                     plugin.reloadConfiguration();
-                    sender.sendMessage("§aКонфигурация FlyPlugin перезагружена!");
+                    sender.sendMessage("§aКонфигурация FlyController перезагружена!");
                 } else {
                     sender.sendMessage("§cУ вас нет разрешения на эту команду!");
                 }

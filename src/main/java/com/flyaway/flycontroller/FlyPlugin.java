@@ -73,7 +73,7 @@ public class FlyPlugin extends JavaPlugin implements Listener {
         startFlightTimer();
         startActionBarTimer();
 
-        getLogger().info("FlyPlugin успешно запущен!");
+        getLogger().info("Плагин успешно запущен!");
         getLogger().info("Разрешённые миры: " + String.join(", ", allowedWorlds));
         getLogger().info("Валюта: " + economyManager.getCurrencyName());
     }
@@ -135,7 +135,7 @@ public class FlyPlugin extends JavaPlugin implements Listener {
                 disableFlight(player);
             }
         }
-        getLogger().info("FlyPlugin выключен!");
+        getLogger().info("Плагин выключен!");
     }
 
     private void startFlightTimer() {
