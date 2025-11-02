@@ -21,16 +21,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.Iterator;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class FlyPlugin extends JavaPlugin implements Listener {
 
-    private Map<UUID, FlightData> playerFlightData;
     private Map<UUID, Long> activeFlightTimes;
+    private Map<UUID, Long> pausedFlightTimes;
     private EconomyManager economyManager;
     private DataManager dataManager;
     private ActionBarManager actionBarManager;
     private ConfigManager configManager;
-    private Map<UUID, Long> pausedFlightTimes = new HashMap<>();
 
     private Map<Integer, FlightTier> flightTiers;
     private Map<Integer, Float> flySpeeds;
@@ -41,9 +41,8 @@ public class FlyPlugin extends JavaPlugin implements Listener {
 
     @Override
     public void onEnable() {
-        this.playerFlightData = new HashMap<>();
-        this.activeFlightTimes = new HashMap<>();
-        this.pausedFlightTimes = new HashMap<>();
+        this.activeFlightTimes = new ConcurrentHashMap<>();
+        this.pausedFlightTimes = new ConcurrentHashMap<>();
 
         // Инициализация менеджеров
         this.configManager = new ConfigManager(this);
@@ -58,9 +57,6 @@ public class FlyPlugin extends JavaPlugin implements Listener {
         this.economyManager = new EconomyManager(this);
         this.dataManager = new DataManager(this);
         this.actionBarManager = new ActionBarManager(this);
-
-        // Загрузка данных
-        dataManager.loadAllPlayerData();
 
         // Регистрация событий
         getServer().getPluginManager().registerEvents(this, this);
@@ -126,16 +122,44 @@ public class FlyPlugin extends JavaPlugin implements Listener {
             actionBarTimerTask.cancel();
             actionBarTimerTask = null;
         }
-        // Сохраняем данные всех игроков
-        dataManager.saveAllPlayerData();
 
         // Отключаем полёт всем игрокам при выключении плагина
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            if (player.getAllowFlight() && activeFlightTimes.containsKey(player.getUniqueId())) {
-                disableFlight(player);
+        for (Map.Entry<UUID, Long> entry : activeFlightTimes.entrySet()) {
+            UUID playerId = entry.getKey();
+            Player player = Bukkit.getPlayer(playerId);
+            if (player != null) {
+                pauseActiveFlight(player, "плагин выключается");
             }
         }
         getLogger().info("Плагин выключен!");
+    }
+
+    private void pauseActiveFlight(Player player, String reason) {
+        UUID playerId = player.getUniqueId();
+
+        // Сохраняем оставшееся время
+        Long remainingTime = getRemainingFlightTime(player);
+        if (remainingTime > 0) {
+            // Сохраняем в данные игрока
+            FlightData data = dataManager.loadPlayerData(playerId);
+            data.setPausedTime(remainingTime);
+            data.setFlightActive(false);
+            data.setFlightEndTime(0);
+
+            // Сохраняем для текущей сессии
+            pausedFlightTimes.put(playerId, remainingTime);
+
+            dataManager.savePlayerData(playerId, data);
+
+            player.sendMessage("§cПолёт отключён! Причина: " + reason);
+            player.sendMessage("§eОставшееся время сохранено. Используйте §6/mfly continue§e для продолжения.");
+        } else {
+            player.sendMessage("§cПолёт отключён! Причина: " + reason);
+        }
+
+        // Отключаем полёт и удаляем из активных
+        disableFlight(player);
+        activeFlightTimes.remove(playerId);
     }
 
     private void startFlightTimer() {
@@ -160,11 +184,11 @@ public class FlyPlugin extends JavaPlugin implements Listener {
                         activeIterator.remove();
 
                         // ОЧИЩАЕМ данные игрока
-                        FlightData data = playerFlightData.get(playerId);
+                        FlightData data = dataManager.loadPlayerData(playerId);
                         if (data != null) {
                             data.setFlightActive(false);
                             data.setFlightEndTime(0);
-                            dataManager.savePlayerData(playerId);
+                            dataManager.savePlayerData(playerId, data);
                         }
                     }
                 }
@@ -173,15 +197,16 @@ public class FlyPlugin extends JavaPlugin implements Listener {
                 Iterator<Map.Entry<UUID, Long>> pausedIterator = pausedFlightTimes.entrySet().iterator();
                 while (pausedIterator.hasNext()) {
                     Map.Entry<UUID, Long> entry = pausedIterator.next();
+                    UUID playerId = entry.getKey();
                     // Удаляем если сохранённое время истекло
                     if (entry.getValue() <= 0) {
                         pausedIterator.remove();
 
                         // ОЧИЩАЕМ данные игрока
-                        FlightData data = playerFlightData.get(entry.getKey());
+                        FlightData data = dataManager.loadPlayerData(playerId);
                         if (data != null) {
                             data.setPausedTime(0);
-                            dataManager.savePlayerData(entry.getKey());
+                            dataManager.savePlayerData(playerId, data);
                         }
                     }
                 }
@@ -211,28 +236,9 @@ public class FlyPlugin extends JavaPlugin implements Listener {
         World world = player.getWorld();
 
         if (!isWorldAllowed(world)) {
-            if (player.getAllowFlight() || activeFlightTimes.containsKey(player.getUniqueId())) {
-                UUID playerId = player.getUniqueId();
-
-                // Сохраняем оставшееся время
-                Long remainingTime = getRemainingFlightTime(player);
-                if (remainingTime > 0) {
-                    // Сохраняем в данные игрока
-                    FlightData data = getPlayerFlightData(playerId);
-                    data.setPausedTime(remainingTime);
-                    data.setFlightActive(false);
-
-                    // Сохраняем для текущей сессии
-                    pausedFlightTimes.put(playerId, remainingTime);
-
-                    // Сохраняем в файл
-                    dataManager.savePlayerData(playerId);
-
-                    player.sendMessage("§cПолёт отключён! Вы находитесь не в разрешённом мире.");
-                    player.sendMessage("§eОставшееся время сохранено. Используйте §6/mfly continue§e в разрешённом мире для продолжения.");
-                }
-                disableFlight(player);
-                activeFlightTimes.remove(playerId);
+            if (player.getGameMode() != GameMode.CREATIVE &&
+                (player.getAllowFlight() || activeFlightTimes.containsKey(player.getUniqueId()))) {
+                pauseActiveFlight(player, "смена мира на неразрешённый");
             }
         }
     }
@@ -243,22 +249,8 @@ public class FlyPlugin extends JavaPlugin implements Listener {
         UUID playerId = player.getUniqueId();
 
         // Если у игрока активный полёт - ставим на паузу
-        if (activeFlightTimes.containsKey(playerId)) {
-            Long remainingTime = getRemainingFlightTime(player);
-            if (remainingTime > 0) {
-                // Сохраняем оставшееся время
-                FlightData data = getPlayerFlightData(playerId);
-                data.setPausedTime(remainingTime);
-                data.setFlightActive(false);
-                data.setFlightEndTime(0);
-
-                // Сохраняем в файл
-                dataManager.savePlayerData(playerId);
-            }
-
-            // Отключаем полёт и удаляем из активных
-            disableFlight(player);
-            activeFlightTimes.remove(playerId);
+        if (player.getGameMode() != GameMode.CREATIVE && activeFlightTimes.containsKey(playerId)) {
+            pauseActiveFlight(player, "выход из игры");
         }
     }
 
@@ -272,7 +264,7 @@ public class FlyPlugin extends JavaPlugin implements Listener {
         // Загружаем данные игрока
         dataManager.loadPlayerData(playerId);
 
-        FlightData data = playerFlightData.get(playerId);
+        FlightData data = dataManager.loadPlayerData(playerId);
 
         // ВОССТАНАВЛИВАЕМ СОХРАНЁННЫЙ ПОЛЁТ
         if (data != null && data.getPausedTime() > 0) {
@@ -317,33 +309,9 @@ public class FlyPlugin extends JavaPlugin implements Listener {
     }
 
     private void handleCombat(Player player) {
-        if (player.getAllowFlight()) {
-            UUID playerId = player.getUniqueId();
-
-            if (activeFlightTimes.containsKey(playerId) && player.getGameMode() != GameMode.CREATIVE) {
-                // Сохраняем оставшееся время
-                Long remainingTime = getRemainingFlightTime(player);
-                if (remainingTime > 0) {
-                    // Сохраняем в данные игрока (для перезагрузок)
-                    FlightData data = getPlayerFlightData(playerId);
-                    data.setPausedTime(remainingTime);
-                    data.setFlightActive(false);
-
-                    // Сохраняем для текущей сессии
-                    pausedFlightTimes.put(playerId, remainingTime);
-
-                    // Сохраняем в файл
-                    dataManager.savePlayerData(playerId);
-
-                    player.sendMessage("§cПолёт отключён из-за вступления в бой!");
-                    player.sendMessage("§eОставшееся время сохранено. Используйте §6/mfly continue§e для продолжения полёта.");
-                } else {
-                    player.sendMessage("§cПолёт отключён из-за вступления в бой!");
-                }
-                activeFlightTimes.remove(playerId);
-            }
-
-            disableFlight(player);
+        if (player.getGameMode() != GameMode.CREATIVE &&
+            (player.getAllowFlight() || activeFlightTimes.containsKey(player.getUniqueId()))) {
+            pauseActiveFlight(player, "вступление в бой");
         }
     }
 
@@ -360,7 +328,7 @@ public class FlyPlugin extends JavaPlugin implements Listener {
         Long pausedTimeBeforeActivation = pausedFlightTimes.get(playerId);
         if (pausedTimeBeforeActivation == null) {
             // Если не в сессии, то из данных
-            FlightData data = getPlayerFlightData(playerId);
+            FlightData data = dataManager.loadPlayerData(playerId);
             pausedTimeBeforeActivation = data.getPausedTime();
         }
 
@@ -395,7 +363,7 @@ public class FlyPlugin extends JavaPlugin implements Listener {
 
         // Получаем текущие данные игрока
         UUID playerId = player.getUniqueId();
-        FlightData data = getPlayerFlightData(playerId);
+        FlightData data = dataManager.loadPlayerData(playerId);
         double currentBalance = data.getBalance();
 
         // Проверяем, достигнут ли максимальный уровень
@@ -438,16 +406,14 @@ public class FlyPlugin extends JavaPlugin implements Listener {
 
         // Добавляем деньги на счёт полётов
         data.setBalance(newBalance);
-        playerFlightData.put(playerId, data);
+        // Сохраняем данные
+        dataManager.savePlayerData(playerId, data);
 
         // Проверяем, достигнут ли новый уровень
         if (newLevel > data.getMaxUnlockedLevel()) {
             data.setMaxUnlockedLevel(newLevel);
             player.sendMessage("§aПоздравляем! Вы достигли уровня полёта " + newLevel + "!");
         }
-
-        // Сохраняем данные
-        dataManager.savePlayerData(playerId);
 
         String currencySymbol = economyManager.getCurrencySymbol();
         player.sendMessage("§aВы внесли §e" + amount + currencySymbol + "§a денег на счёт полётов.");
@@ -459,7 +425,7 @@ public class FlyPlugin extends JavaPlugin implements Listener {
 
     public boolean activateFlight(Player player) {
         UUID playerId = player.getUniqueId();
-        FlightData data = getPlayerFlightData(playerId);
+        FlightData data = dataManager.loadPlayerData(playerId);
 
         if (data.getBalance() == 0) {
             player.sendMessage("§cУ вас нет денег на счёте полётов! Используйте /mfly deposit <сумма>");
@@ -499,7 +465,7 @@ public class FlyPlugin extends JavaPlugin implements Listener {
         data.setCooldownEnd(endTime + cooldownTime);
 
         // Сохраняем данные
-        dataManager.savePlayerData(playerId);
+        dataManager.savePlayerData(playerId, data);
 
         enableFlight(player);
 
@@ -550,22 +516,6 @@ public class FlyPlugin extends JavaPlugin implements Listener {
         }
     }
 
-    public FlightData getPlayerFlightData(Player player) {
-        return getPlayerFlightData(player.getUniqueId());
-    }
-
-    public FlightData getPlayerFlightData(UUID playerId) {
-        return playerFlightData.getOrDefault(playerId, new FlightData());
-    }
-
-    public void setPlayerFlightData(UUID playerId, FlightData data) {
-        playerFlightData.put(playerId, data);
-    }
-
-    public Map<UUID, FlightData> getAllPlayerFlightData() {
-        return playerFlightData;
-    }
-
     public Long getRemainingFlightTime(Player player) {
         UUID playerId = player.getUniqueId();
         if (activeFlightTimes.containsKey(playerId)) {
@@ -598,26 +548,11 @@ public class FlyPlugin extends JavaPlugin implements Listener {
         return highestLevel;
     }
 
-    // Получить сумму, необходимую для следующего уровня
-    public double getAmountForNextLevel(Player player) {
-        FlightData data = getPlayerFlightData(player);
-        double currentBalance = data.getBalance();
-        int currentLevel = calculateFlightLevel(currentBalance);
-        int nextLevel = currentLevel + 1;
-
-        FlightTier nextTier = flightTiers.get(nextLevel);
-        if (nextTier == null) {
-            return 0; // Максимальный уровень уже достигнут
-        }
-
-        return Math.max(0, nextTier.getMinAmount() - currentBalance);
-    }
-
     private boolean activatePausedFlight(Player player) {
         UUID playerId = player.getUniqueId();
 
         // Получаем данные игрока
-        FlightData data = getPlayerFlightData(playerId);
+        FlightData data = dataManager.loadPlayerData(playerId);
         if (data == null) {
             return false;
         }
@@ -648,7 +583,7 @@ public class FlyPlugin extends JavaPlugin implements Listener {
         data.setPausedTime(0); // Очищаем сохранённое время
 
         // Сохраняем данные
-        dataManager.savePlayerData(playerId);
+        dataManager.savePlayerData(playerId, data);
 
         // Удаляем из паузы сессии
         pausedFlightTimes.remove(playerId);

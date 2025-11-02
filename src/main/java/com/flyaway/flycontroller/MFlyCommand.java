@@ -90,7 +90,8 @@ public class MFlyCommand implements CommandExecutor, TabCompleter {
     }
 
     private void showFlightInfo(Player player) {
-        FlightData data = plugin.getPlayerFlightData(player);
+        FlightData data = plugin.getDataManager().loadPlayerData(player.getUniqueId());
+
         String currencySymbol = plugin.getEconomyManager().getCurrencySymbol();
 
         player.sendMessage("§6=== Система временного полёта ===");
@@ -100,7 +101,7 @@ public class MFlyCommand implements CommandExecutor, TabCompleter {
         player.sendMessage("§aТекущий уровень: §e" + currentLevel);
 
         // Показываем прогресс до следующего уровня
-        double amountForNextLevel = plugin.getAmountForNextLevel(player);
+        double amountForNextLevel = getAmountForNextLevel(data, plugin);
         if (amountForNextLevel > 0) {
             player.sendMessage("§aДо следующего уровня: §e" + amountForNextLevel + currencySymbol);
         } else if (currentLevel >= plugin.getMaxFlightLevel()) {
@@ -191,6 +192,22 @@ public class MFlyCommand implements CommandExecutor, TabCompleter {
         if (player.hasPermission("flycontroller.admin")) {
             player.sendMessage("§e/mfly reload §7- Перезагрузить конфигурацию");
         }
+    }
+
+    /**
+     * Вспомогательный метод для расчёта суммы до следующего уровня
+     */
+    private double getAmountForNextLevel(FlightData data, FlyPlugin plugin) {
+        double currentBalance = data.getBalance();
+        int currentLevel = plugin.calculateFlightLevel(currentBalance);
+        int nextLevel = currentLevel + 1;
+
+        FlightTier nextTier = plugin.getFlightTiers().get(nextLevel);
+        if (nextTier == null) {
+            return 0; // Максимальный уровень уже достигнут
+        }
+
+        return Math.max(0, nextTier.getMinAmount() - currentBalance);
     }
 
     /**

@@ -21,47 +21,27 @@ public class DataManager {
         }
     }
 
-    public void loadAllPlayerData() {
-        // Загружаем данные только для онлайн игроков
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            loadPlayerData(player.getUniqueId());
-        }
-    }
-
-    public void loadPlayerData(UUID playerId) {
+    public FlightData loadPlayerData(UUID playerId) {
         File playerFile = getPlayerFile(playerId);
+        FlightData data = new FlightData();
+
         if (!playerFile.exists()) {
-            return;
+            return data; // Возвращаем пустые данные
         }
 
         FileConfiguration config = YamlConfiguration.loadConfiguration(playerFile);
-        FlightData data = new FlightData();
 
         data.setBalance(config.getDouble("balance", 0));
         data.setMaxUnlockedLevel(config.getInt("maxUnlockedLevel", 0));
         data.setCooldownEnd(config.getLong("cooldownEnd", 0));
         data.setFlightActive(config.getBoolean("flightActive", false));
         data.setFlightEndTime(config.getLong("flightEndTime", 0));
-        data.setPausedTime(config.getLong("pausedTime", 0)); // ДОБАВЬТЕ
+        data.setPausedTime(config.getLong("pausedTime", 0));
 
-        plugin.setPlayerFlightData(playerId, data);
-
-        // НЕ восстанавливаем активный полёт при входе - только сохранённое время
-        // Активный полёт должен быть активирован через /mfly continue
+        return data;
     }
 
-    public void saveAllPlayerData() {
-        for (UUID playerId : plugin.getAllPlayerFlightData().keySet()) {
-            savePlayerData(playerId);
-        }
-    }
-
-    public void savePlayerData(UUID playerId) {
-        FlightData data = plugin.getPlayerFlightData(playerId);
-        if (data == null) {
-            return;
-        }
-
+    public void savePlayerData(UUID playerId, FlightData data) {
         File playerFile = getPlayerFile(playerId);
         FileConfiguration config = new YamlConfiguration();
 
@@ -70,7 +50,7 @@ public class DataManager {
         config.set("cooldownEnd", data.getCooldownEnd());
         config.set("flightActive", data.isFlightActive());
         config.set("flightEndTime", data.getFlightEndTime());
-        config.set("pausedTime", data.getPausedTime()); // ДОБАВЬТЕ
+        config.set("pausedTime", data.getPausedTime());
 
         try {
             config.save(playerFile);
@@ -78,10 +58,6 @@ public class DataManager {
             plugin.getLogger().warning("Не удалось сохранить данные игрока: " + playerId);
             e.printStackTrace();
         }
-    }
-
-    public void savePlayerData(Player player) {
-        savePlayerData(player.getUniqueId());
     }
 
     private File getPlayerFile(UUID playerId) {
