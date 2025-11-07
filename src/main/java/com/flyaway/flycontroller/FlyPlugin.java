@@ -154,7 +154,7 @@ public class FlyPlugin extends JavaPlugin implements Listener {
             player.sendMessage("§cПолёт отключён! Причина: " + reason);
             player.sendMessage("§eОставшееся время сохранено. Используйте §6/mfly continue§e для продолжения.");
         } else {
-            player.sendMessage("§cПолёт отключён! Причина: " + reason);
+            if (player.getGameMode() != GameMode.CREATIVE) player.sendMessage("§cПолёт отключён! Причина: " + reason);
         }
 
         // Отключаем полёт и удаляем из активных
@@ -236,8 +236,7 @@ public class FlyPlugin extends JavaPlugin implements Listener {
         World world = player.getWorld();
 
         if (!isWorldAllowed(world)) {
-            if (player.getGameMode() != GameMode.CREATIVE &&
-                (player.getAllowFlight() || activeFlightTimes.containsKey(player.getUniqueId()))) {
+            if (player.getAllowFlight() || activeFlightTimes.containsKey(player.getUniqueId())) {
                 pauseActiveFlight(player, "смена мира на неразрешённый");
             }
         }
@@ -249,7 +248,7 @@ public class FlyPlugin extends JavaPlugin implements Listener {
         UUID playerId = player.getUniqueId();
 
         // Если у игрока активный полёт - ставим на паузу
-        if (player.getGameMode() != GameMode.CREATIVE && activeFlightTimes.containsKey(playerId)) {
+        if (activeFlightTimes.containsKey(playerId)) {
             pauseActiveFlight(player, "выход из игры");
         }
     }
@@ -309,8 +308,7 @@ public class FlyPlugin extends JavaPlugin implements Listener {
     }
 
     private void handleCombat(Player player) {
-        if (player.getGameMode() != GameMode.CREATIVE &&
-            (player.getAllowFlight() || activeFlightTimes.containsKey(player.getUniqueId()))) {
+        if (player.getAllowFlight() || activeFlightTimes.containsKey(player.getUniqueId())) {
             pauseActiveFlight(player, "вступление в бой");
         }
     }
