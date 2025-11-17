@@ -1,5 +1,8 @@
-package com.flyaway.flycontroller;
+package com.flyaway.flycontroller.managers;
 
+import com.flyaway.flycontroller.models.FlightTier;
+import com.flyaway.flycontroller.FlyPlugin;
+import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.jetbrains.annotations.NotNull;
 
@@ -10,6 +13,9 @@ import java.util.List;
 public class ConfigManager {
     private final FlyPlugin plugin;
     private FileConfiguration config;
+    private Map<Integer, FlightTier> flightTiers;
+    private Map<Integer, Float> flySpeeds;
+    private List<String> allowedWorlds;
 
     public ConfigManager(FlyPlugin plugin) {
         this.plugin = plugin;
@@ -18,14 +24,17 @@ public class ConfigManager {
     public void loadConfig() {
         plugin.saveDefaultConfig();
         config = plugin.getConfig();
+        setFlightTiers();
+        setFlySpeeds();
+        setAllowedWorlds();
     }
 
     public void reloadConfig() {
         plugin.reloadConfig();
-        config = plugin.getConfig();
+        loadConfig();
     }
 
-    public Map<Integer, FlightTier> getFlightTiers() {
+    public void setFlightTiers() {
         Map<Integer, FlightTier> tiers = new HashMap<>();
 
         if (config.contains("flight-tiers")) {
@@ -50,10 +59,10 @@ public class ConfigManager {
             plugin.getLogger().warning("Используются уровни полёта по умолчанию");
         }
 
-        return tiers;
+        this.flightTiers = tiers;
     }
 
-    public Map<Integer, Float> getFlySpeeds() {
+    public void setFlySpeeds() {
         Map<Integer, Float> speeds = new HashMap<>();
 
         if (config.contains("fly-speeds")) {
@@ -75,7 +84,11 @@ public class ConfigManager {
             speeds.put(3, 0.4f);
         }
 
-        return speeds;
+        this.flySpeeds = speeds;
+    }
+
+    public void setAllowedWorlds() {
+        this.allowedWorlds = config.getStringList("worlds");
     }
 
     public @NotNull String getPrefix() {
@@ -103,8 +116,20 @@ public class ConfigManager {
         return message;
     }
 
-    public List<String> getWorlds() {
-        return config.getStringList("worlds");
+    public boolean isWorldAllowed(World world) {
+        return allowedWorlds.isEmpty() || allowedWorlds.contains(world.getName());
+    }
+
+    public Map<Integer, FlightTier> getFlightTiers() {
+        return flightTiers;
+    }
+
+    public Map<Integer, Float> getFlightSpeeds() {
+        return flySpeeds;
+    }
+
+    public List<String> getAllowedWorlds() {
+        return allowedWorlds;
     }
 
     public String getCurrency() {

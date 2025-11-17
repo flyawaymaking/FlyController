@@ -1,5 +1,7 @@
-package com.flyaway.flycontroller;
+package com.flyaway.flycontroller.managers;
 
+import com.flyaway.flycontroller.FlyPlugin;
+import com.flyaway.flycontroller.utils.TimeFormatter;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.entity.Player;
 
@@ -20,8 +22,7 @@ public class ActionBarManager {
         if (remainingTime <= 0) {
             return;
         }
-        String timeString = configManager.getMessage("action-bar", Map.of("time", plugin.formatTime(remainingTime))
-        );
+        String timeString = configManager.getMessage("action-bar", Map.of("time", TimeFormatter.formatTime(remainingTime, configManager)));
         player.sendActionBar(miniMessage.deserialize(timeString));
     }
 }

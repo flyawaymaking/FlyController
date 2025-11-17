@@ -1,5 +1,8 @@
-package com.flyaway.flycontroller;
+package com.flyaway.flycontroller.commands;
 
+import com.flyaway.flycontroller.FlyPlugin;
+import com.flyaway.flycontroller.managers.ConfigManager;
+import com.flyaway.flycontroller.managers.PlayerManager;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -12,25 +15,29 @@ import java.util.Map;
 
 public class FlySpeedCommand implements CommandExecutor, TabCompleter {
     private final FlyPlugin plugin;
+    private final ConfigManager configManager;
+    private final PlayerManager playerManager;
 
     public FlySpeedCommand(FlyPlugin plugin) {
         this.plugin = plugin;
+        this.configManager = plugin.getConfigManager();
+        this.playerManager = plugin.getPlayerManager();
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player player)) {
-            plugin.sendMessage(sender, plugin.getConfigManager().getMessage("only-players"));
+            playerManager.sendMessage(sender, configManager.getMessage("only-players"));
             return true;
         }
 
         if (!player.hasPermission("flycontroller.flyspeed")) {
-            plugin.sendMessage(player, plugin.getConfigManager().getMessage("no-permission"));
+            playerManager.sendMessage(player, configManager.getMessage("no-permission"));
             return true;
         }
 
-        if (!plugin.isWorldAllowed(player.getWorld())) {
-            plugin.sendMessage(player, plugin.getConfigManager().getMessage("flyspeed-not-allowed-world"));
+        if (!configManager.isWorldAllowed(player.getWorld())) {
+            playerManager.sendMessage(player, configManager.getMessage("flyspeed-not-allowed-world"));
             return true;
         }
 
@@ -38,21 +45,21 @@ public class FlySpeedCommand implements CommandExecutor, TabCompleter {
             Map<String, String> placeholders = Map.of(
                     "speeds", getAvailableSpeedsString()
             );
-            plugin.sendMessage(player, plugin.getConfigManager().getMessage("flyspeed-usage", placeholders));
+            playerManager.sendMessage(player, configManager.getMessage("flyspeed-usage", placeholders));
             return true;
         }
 
         try {
             int speed = Integer.parseInt(args[0]);
 
-            Map<Integer, Float> availableSpeeds = plugin.getFlySpeeds();
+            Map<Integer, Float> availableSpeeds = configManager.getFlightSpeeds();
 
             if (!availableSpeeds.containsKey(speed)) {
                 Map<String, String> placeholders = Map.of(
                         "speed", String.valueOf(speed),
                         "speeds", getAvailableSpeedsString()
                 );
-                plugin.sendMessage(player, plugin.getConfigManager().getMessage("flyspeed-not-available", placeholders));
+                playerManager.sendMessage(player, configManager.getMessage("flyspeed-not-available", placeholders));
                 return true;
             }
 
@@ -64,13 +71,13 @@ public class FlySpeedCommand implements CommandExecutor, TabCompleter {
                     "speed_name", speedName,
                     "speed_level", String.valueOf(speed)
             );
-            plugin.sendMessage(player, plugin.getConfigManager().getMessage("flyspeed-set", placeholders));
+            playerManager.sendMessage(player, configManager.getMessage("flyspeed-set", placeholders));
 
         } catch (NumberFormatException e) {
             Map<String, String> placeholders = Map.of(
                     "speeds", getAvailableSpeedsString()
             );
-            plugin.sendMessage(player, plugin.getConfigManager().getMessage("flyspeed-invalid-number", placeholders));
+            playerManager.sendMessage(player, configManager.getMessage("flyspeed-invalid-number", placeholders));
         }
 
         return true;
@@ -81,7 +88,7 @@ public class FlySpeedCommand implements CommandExecutor, TabCompleter {
         List<String> completions = new ArrayList<>();
 
         if (sender.hasPermission("flycontroller.flyspeed") && args.length == 1) {
-            for (Integer speed : plugin.getFlySpeeds().keySet()) {
+            for (Integer speed : configManager.getFlightSpeeds().keySet()) {
                 completions.add(speed.toString());
             }
         }
@@ -90,7 +97,7 @@ public class FlySpeedCommand implements CommandExecutor, TabCompleter {
     }
 
     private String getAvailableSpeedsString() {
-        Map<Integer, Float> speeds = plugin.getFlySpeeds();
+        Map<Integer, Float> speeds = configManager.getFlightSpeeds();
         List<String> speedList = new ArrayList<>();
 
         for (Map.Entry<Integer, Float> entry : speeds.entrySet()) {
@@ -103,7 +110,7 @@ public class FlySpeedCommand implements CommandExecutor, TabCompleter {
     }
 
     private String getSpeedName(int speed) {
-        String speedName = plugin.getConfigManager().getMessage("flyspeed-names." + speed);
+        String speedName = configManager.getMessage("flyspeed-names." + speed);
         if (speedName.startsWith("message.flyspeed-names.")) {
             return speed + "lvl";
         }

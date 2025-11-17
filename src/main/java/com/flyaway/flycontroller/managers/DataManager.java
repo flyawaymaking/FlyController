@@ -1,5 +1,7 @@
-package com.flyaway.flycontroller;
+package com.flyaway.flycontroller.managers;
 
+import com.flyaway.flycontroller.models.FlightData;
+import com.flyaway.flycontroller.FlyPlugin;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 

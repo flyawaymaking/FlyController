@@ -1,4 +1,4 @@
-package com.flyaway.flycontroller;
+package com.flyaway.flycontroller.models;
 
 public class FlightData {
     private double balance; // Баланс на счету полётов (внесённые деньги)
@@ -17,7 +17,6 @@ public class FlightData {
         this.pausedTime = 0;
     }
 
-    // Геттеры и сеттеры
     public double getBalance() {
         return balance;
     }

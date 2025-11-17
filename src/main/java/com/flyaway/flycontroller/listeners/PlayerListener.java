@@ -1,5 +1,11 @@
-package com.flyaway.flycontroller;
+package com.flyaway.flycontroller.listeners;
 
+import com.flyaway.flycontroller.FlyPlugin;
+import com.flyaway.flycontroller.managers.ConfigManager;
+import com.flyaway.flycontroller.managers.FlightManager;
+import com.flyaway.flycontroller.managers.PlayerManager;
+import com.flyaway.flycontroller.models.FlightData;
+import com.flyaway.flycontroller.utils.TimeFormatter;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -19,10 +25,14 @@ import java.util.UUID;
 public class PlayerListener implements Listener {
     private final FlyPlugin plugin;
     private final ConfigManager configManager;
+    private final PlayerManager playerManager;
+    private final FlightManager flightManager;
 
     public PlayerListener(FlyPlugin plugin) {
         this.plugin = plugin;
         this.configManager = plugin.getConfigManager();
+        this.playerManager = plugin.getPlayerManager();
+        this.flightManager = plugin.getFlightManager();
     }
 
     @EventHandler(priority = EventPriority.HIGH)
@@ -38,8 +48,8 @@ public class PlayerListener implements Listener {
         String command = args[0];
 
         if (command.equals("fly") || command.equals("essentials:fly")) {
-            if (!plugin.isWorldAllowed(player.getWorld())) {
-                plugin.sendMessage(player, configManager.getMessage("fly-command-not-allowed"));
+            if (!configManager.isWorldAllowed(player.getWorld())) {
+                playerManager.sendMessage(player, configManager.getMessage("fly-command-not-allowed"));
                 event.setCancelled(true);
             }
         }
@@ -50,9 +60,9 @@ public class PlayerListener implements Listener {
         Player player = event.getPlayer();
         World world = player.getWorld();
 
-        if (!plugin.isWorldAllowed(world)) {
-            if (player.getAllowFlight() || plugin.getActiveFlightTimes().containsKey(player.getUniqueId())) {
-                plugin.pauseActiveFlight(player, configManager.getMessage("disable-reason.change-world"));
+        if (!configManager.isWorldAllowed(world)) {
+            if (player.getAllowFlight() || flightManager.hasActiveFlightTimes(player.getUniqueId())) {
+                flightManager.pauseActiveFlight(player, configManager.getMessage("disable-reason.change-world"));
             }
         }
     }
@@ -62,8 +72,8 @@ public class PlayerListener implements Listener {
         Player player = event.getPlayer();
         UUID playerId = player.getUniqueId();
 
-        if (plugin.getActiveFlightTimes().containsKey(playerId)) {
-            plugin.pauseActiveFlight(player, configManager.getMessage("disable-reason.quit"));
+        if (flightManager.hasActiveFlightTimes(playerId)) {
+            flightManager.pauseActiveFlight(player, configManager.getMessage("disable-reason.quit"));
         }
     }
 
@@ -72,37 +82,37 @@ public class PlayerListener implements Listener {
         Player player = event.getPlayer();
         UUID playerId = player.getUniqueId();
 
-        boolean isAllowedWorld = plugin.isWorldAllowed(player.getWorld());
+        boolean isAllowedWorld = configManager.isWorldAllowed(player.getWorld());
 
         FlightData data = plugin.getDataManager().loadPlayerData(playerId);
 
         if (data != null && data.getPausedTime() > 0) {
             long savedPausedTime = data.getPausedTime();
 
-            plugin.setPausedFlightTime(playerId, savedPausedTime);
+            flightManager.setPausedFlightTime(playerId, savedPausedTime);
 
-            Map<@NotNull String, @NotNull String> timePlaceholders = Map.of("time", plugin.formatTime(savedPausedTime));
+            Map<@NotNull String, @NotNull String> timePlaceholders = Map.of("time", TimeFormatter.formatTime(savedPausedTime, configManager));
             if (isAllowedWorld) {
-                if (plugin.activatePausedFlight(player)) {
-                    plugin.sendMessage(player, configManager.getMessage("flight-restored", timePlaceholders));
+                if (flightManager.activatePausedFlight(player)) {
+                    playerManager.sendMessage(player, configManager.getMessage("flight-restored", timePlaceholders));
                 } else {
-                    plugin.sendMessage(player, configManager.getMessage("flight-restored-failed"));
+                    playerManager.sendMessage(player, configManager.getMessage("flight-restored-failed"));
                 }
             } else {
-                plugin.sendMessage(player, configManager.getMessage("flight-saved-comeback", timePlaceholders));
+                playerManager.sendMessage(player, configManager.getMessage("flight-saved-comeback", timePlaceholders));
             }
         }
 
         if (!isAllowedWorld) {
-            plugin.disableFlight(player);
+            flightManager.disableFlight(player);
         }
     }
 
     @EventHandler
     public void onPlayerAttack(EntityDamageByEntityEvent event) {
         if (event.getDamager() instanceof Player attacker && event.getEntity() instanceof Player victim) {
-            plugin.handleCombat(attacker);
-            plugin.handleCombat(victim);
+            flightManager.handleCombat(attacker);
+            flightManager.handleCombat(victim);
         }
     }
 }
