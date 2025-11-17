@@ -19,12 +19,10 @@ public class FlySpeedCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!(sender instanceof Player)) {
+        if (!(sender instanceof Player player)) {
             sender.sendMessage("§cЭта команда только для игроков!");
             return true;
         }
-
-        Player player = (Player) sender;
 
         // ПРОВЕРКА ПРАВА ДОСТУПА
         if (!player.hasPermission("flycontroller.flyspeed")) {
@@ -108,12 +106,12 @@ public class FlySpeedCommand implements CommandExecutor, TabCompleter {
      */
     private String getSpeedName(int speed) {
         // Можно добавить в конфиг названия скоростей, но пока оставим фиксированные
-        switch (speed) {
-            case 1: return "медленно";
-            case 2: return "нормально";
-            case 3: return "быстро";
-            case 4: return "очень быстро";
-            default: return "уровень " + speed;
-        }
+        return switch (speed) {
+            case 1 -> "медленно";
+            case 2 -> "нормально";
+            case 3 -> "быстро";
+            case 4 -> "очень быстро";
+            default -> "уровень " + speed;
+        };
     }
 }

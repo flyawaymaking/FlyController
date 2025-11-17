@@ -18,12 +18,10 @@ public class MFlyCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!(sender instanceof Player)) {
+        if (!(sender instanceof Player player)) {
             sender.sendMessage("Эта команда только для игроков!");
             return true;
         }
-
-        Player player = (Player) sender;
 
         if (!player.hasPermission("flycontroller.mfly")) {
             player.sendMessage("§cУ вас нет разрешения на использование этой команды!");
@@ -121,7 +119,7 @@ public class MFlyCommand implements CommandExecutor, TabCompleter {
             String timeString = minutes + " минут" + (seconds > 0 ? " " + seconds + " секунд" : "");
 
             String levelInfo = "Уровень " + tier.getLevel() + "§7: " +
-                timeString + " - §e" + tier.getMinAmount() + currencySymbol;
+                    timeString + " - §e" + tier.getMinAmount() + currencySymbol;
 
             // Подсвечиваем текущий уровень
             if (currentLevel == tier.getLevel()) {
@@ -146,7 +144,7 @@ public class MFlyCommand implements CommandExecutor, TabCompleter {
             pausedTime = data.getPausedTime();
         }
 
-        if (pausedTime != null && pausedTime > 0) {
+        if (pausedTime > 0) {
             long minutes = pausedTime / 60000;
             long seconds = (pausedTime % 60000) / 1000;
             player.sendMessage("");
@@ -175,7 +173,7 @@ public class MFlyCommand implements CommandExecutor, TabCompleter {
             String speedName = getSpeedName(speed);
             speedsInfo.append("§e").append(speed).append("§7 (").append(speedName).append(")§f, ");
         }
-        if (speedsInfo.length() > 0) {
+        if (!speedsInfo.isEmpty()) {
             speedsInfo.setLength(speedsInfo.length() - 2); // Убираем последнюю запятую
             player.sendMessage(speedsInfo.toString());
             player.sendMessage("§7Используйте §e/flyspeed <уровень>§7 для изменения скорости");
@@ -186,7 +184,7 @@ public class MFlyCommand implements CommandExecutor, TabCompleter {
             player.sendMessage("§e/mfly deposit <сумма> §7- Внести деньги на счёт");
         }
         player.sendMessage("§e/mfly activate §7- Активировать полёт");
-        if (pausedTime != null && pausedTime > 0) {
+        if (pausedTime > 0) {
             player.sendMessage("§e/mfly continue §7- Продолжить сохранённый полёт");
         }
         if (player.hasPermission("flycontroller.admin")) {
@@ -214,13 +212,13 @@ public class MFlyCommand implements CommandExecutor, TabCompleter {
      * Возвращает текстовое название скорости
      */
     private String getSpeedName(int speed) {
-        switch (speed) {
-            case 1: return "медленно";
-            case 2: return "нормально";
-            case 3: return "быстро";
-            case 4: return "очень быстро";
-            default: return "уровень " + speed;
-        }
+        return switch (speed) {
+            case 1 -> "медленно";
+            case 2 -> "нормально";
+            case 3 -> "быстро";
+            case 4 -> "очень быстро";
+            default -> "уровень " + speed;
+        };
     }
 
     @Override

@@ -1,9 +1,7 @@
 package com.flyaway.flycontroller;
 
-import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.io.IOException;
@@ -11,7 +9,7 @@ import java.util.UUID;
 
 public class DataManager {
     private final FlyPlugin plugin;
-    private File dataFolder;
+    private final File dataFolder;
 
     public DataManager(FlyPlugin plugin) {
         this.plugin = plugin;
@@ -56,7 +54,6 @@ public class DataManager {
             config.save(playerFile);
         } catch (IOException e) {
             plugin.getLogger().warning("Не удалось сохранить данные игрока: " + playerId);
-            e.printStackTrace();
         }
     }
 

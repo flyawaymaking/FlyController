@@ -4,32 +4,26 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
 
 public class ConfigManager {
     private final FlyPlugin plugin;
-    private File configFile;
     private FileConfiguration config;
 
     public ConfigManager(FlyPlugin plugin) {
         this.plugin = plugin;
-        this.configFile = new File(plugin.getDataFolder(), "config.yml");
-        this.config = YamlConfiguration.loadConfiguration(configFile);
     }
 
     public void loadConfig() {
-        if (!configFile.exists()) {
-            plugin.saveResource("config.yml", false);
-            config = YamlConfiguration.loadConfiguration(configFile);
-        }
+        plugin.saveDefaultConfig();
+        config = plugin.getConfig();
+    }
 
-        // Создаем папку если не существует
-        if (!plugin.getDataFolder().exists()) {
-            plugin.getDataFolder().mkdirs();
-        }
+    public void reloadConfig() {
+        plugin.reloadConfig();
+        config = plugin.getConfig();
     }
 
     public Map<Integer, FlightTier> getFlightTiers() {
@@ -95,17 +89,5 @@ public class ConfigManager {
 
     public long getCooldownTime() {
         return config.getLong("cooldown", 600000); // 10 минут по умолчанию
-    }
-
-    public FileConfiguration getConfig() {
-        return config;
-    }
-
-    public void saveConfig() {
-        try {
-            config.save(configFile);
-        } catch (IOException e) {
-            plugin.getLogger().warning("Не удалось сохранить config.yml: " + e.getMessage());
-        }
     }
 }

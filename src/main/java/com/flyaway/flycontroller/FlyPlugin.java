@@ -16,7 +16,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -75,7 +74,7 @@ public class FlyPlugin extends JavaPlugin implements Listener {
     }
 
     public void reloadConfiguration() {
-        configManager.loadConfig();
+        configManager.reloadConfig();
 
         // Обновляем настройки
         this.flightTiers = configManager.getFlightTiers();
@@ -332,7 +331,7 @@ public class FlyPlugin extends JavaPlugin implements Listener {
 
         // Используем внутренний метод активации
         if (activatePausedFlight(player)) {
-            if (pausedTimeBeforeActivation != null && pausedTimeBeforeActivation > 0) {
+            if (pausedTimeBeforeActivation > 0) {
                 long minutes = pausedTimeBeforeActivation / 60000;
                 long seconds = (pausedTimeBeforeActivation % 60000) / 1000;
                 player.sendMessage("§aПолёт продолжен! Оставшееся время: §e" + minutes + " минут " + seconds + " секунд");
@@ -454,7 +453,7 @@ public class FlyPlugin extends JavaPlugin implements Listener {
 
         // Активируем полёт максимального уровня
         FlightTier tier = flightTiers.get(maxLevel);
-        long endTime = System.currentTimeMillis() + (tier.getDuration() * 1000);
+        long endTime = System.currentTimeMillis() + (tier.getDuration() * 1000L);
         activeFlightTimes.put(playerId, endTime);
 
         // Обновляем данные игрока
@@ -468,7 +467,7 @@ public class FlyPlugin extends JavaPlugin implements Listener {
         enableFlight(player);
 
         player.sendMessage("§aПолёт уровня " + maxLevel + " активирован на " +
-                          tier.getDuration() / 60 + " минут!");
+                tier.getDuration() / 60 + " минут!");
 
         return true;
     }
@@ -590,7 +589,7 @@ public class FlyPlugin extends JavaPlugin implements Listener {
         enableFlight(player);
 
         getLogger().info("Активирован полёт из паузы для " + player.getName() +
-            ", время: " + (pausedTime/1000) + " сек");
+                ", время: " + (pausedTime / 1000) + " сек");
 
         return true;
     }

@@ -6,7 +6,7 @@ import su.nightexpress.coinsengine.api.currency.Currency;
 
 public class EconomyManager {
     private final FlyPlugin plugin;
-    private Currency currency;
+    private final Currency currency;
 
     public EconomyManager(FlyPlugin plugin) {
         this.plugin = plugin;

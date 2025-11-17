@@ -18,21 +18,51 @@ public class FlightData {
     }
 
     // Геттеры и сеттеры
-    public double getBalance() { return balance; }
-    public void setBalance(double balance) { this.balance = balance; }
+    public double getBalance() {
+        return balance;
+    }
 
-    public int getMaxUnlockedLevel() { return maxUnlockedLevel; }
-    public void setMaxUnlockedLevel(int maxUnlockedLevel) { this.maxUnlockedLevel = maxUnlockedLevel; }
+    public void setBalance(double balance) {
+        this.balance = balance;
+    }
 
-    public long getCooldownEnd() { return cooldownEnd; }
-    public void setCooldownEnd(long cooldownEnd) { this.cooldownEnd = cooldownEnd; }
+    public int getMaxUnlockedLevel() {
+        return maxUnlockedLevel;
+    }
 
-    public boolean isFlightActive() { return flightActive; }
-    public void setFlightActive(boolean flightActive) { this.flightActive = flightActive; }
+    public void setMaxUnlockedLevel(int maxUnlockedLevel) {
+        this.maxUnlockedLevel = maxUnlockedLevel;
+    }
 
-    public long getFlightEndTime() { return flightEndTime; }
-    public void setFlightEndTime(long flightEndTime) { this.flightEndTime = flightEndTime; }
+    public long getCooldownEnd() {
+        return cooldownEnd;
+    }
 
-    public long getPausedTime() { return pausedTime; }
-    public void setPausedTime(long pausedTime) { this.pausedTime = pausedTime; }
+    public void setCooldownEnd(long cooldownEnd) {
+        this.cooldownEnd = cooldownEnd;
+    }
+
+    public boolean isFlightActive() {
+        return flightActive;
+    }
+
+    public void setFlightActive(boolean flightActive) {
+        this.flightActive = flightActive;
+    }
+
+    public long getFlightEndTime() {
+        return flightEndTime;
+    }
+
+    public void setFlightEndTime(long flightEndTime) {
+        this.flightEndTime = flightEndTime;
+    }
+
+    public long getPausedTime() {
+        return pausedTime;
+    }
+
+    public void setPausedTime(long pausedTime) {
+        this.pausedTime = pausedTime;
+    }
 }
