@@ -1,6 +1,9 @@
 # Настройки валюты
 currency: "money"
 
+# Отключать ли полёт во время пвп
+pvp-disable-flight: true
+
 # Миры, где разрешён полёт (ставьте пустым - чтобы разрешить везде)
 worlds: [ ]
 #  - "world"
@@ -36,6 +39,7 @@ messages:
   only-players: "<red>Эта команда только для игроков!"
   no-permission: "<red>У вас нет разрешения на использование этой команды!"
   fly-command-not-allowed: "<red>Команда /fly доступна только в разрешённом мире!"
+  flight-already-active: "<yellow>У вас уже есть активный полёт!"
   flight-restored: "<green>Сохранённый полёт автоматически восстановлен! Оставшееся время: <yellow>{time}"
   flight-restored-failed: "<red>Не удалось автоматически активировать сохранённый полёт. Используйте <yellow>/mfly continue"
   flight-saved-comeback: |

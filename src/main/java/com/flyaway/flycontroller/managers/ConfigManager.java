@@ -116,6 +116,10 @@ public class ConfigManager {
         return message;
     }
 
+    public boolean needPvpDisableFlight() {
+        return config.getBoolean("pvp-disable-flight", true);
+    }
+
     public boolean isWorldAllowed(World world) {
         return allowedWorlds.isEmpty() || allowedWorlds.contains(world.getName());
     }

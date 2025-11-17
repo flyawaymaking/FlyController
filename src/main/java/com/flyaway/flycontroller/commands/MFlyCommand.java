@@ -16,6 +16,7 @@ import org.bukkit.entity.Player;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public class MFlyCommand implements CommandExecutor, TabCompleter {
     private final FlyPlugin plugin;
@@ -47,27 +48,19 @@ public class MFlyCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        switch (args[0].toLowerCase()) {
+        return handleCommand(player, args);
+    }
+
+    private boolean handleCommand(Player player, String[] args) {
+        String subCommand = args[0].toLowerCase();
+
+        switch (subCommand) {
             case "info":
                 showFlightInfo(player);
                 break;
 
             case "deposit":
-                if (args.length < 2) {
-                    playerManager.sendMessage(player, configManager.getMessage("mfly-deposit-usage"));
-                    return true;
-                }
-                try {
-                    double amount = Double.parseDouble(args[1]);
-                    if (amount <= 0) {
-                        playerManager.sendMessage(player, configManager.getMessage("amount-must-be-positive"));
-                        return true;
-                    }
-                    flightManager.depositMoney(player, amount);
-                } catch (NumberFormatException e) {
-                    playerManager.sendMessage(player, configManager.getMessage("amount-must-be-number"));
-                }
-                break;
+                return handleDeposit(player, args);
 
             case "activate":
                 flightManager.activateFlight(player);
@@ -78,13 +71,7 @@ public class MFlyCommand implements CommandExecutor, TabCompleter {
                 break;
 
             case "reload":
-                if (sender.hasPermission("flycontroller.admin")) {
-                    plugin.reloadConfiguration();
-                    playerManager.sendMessage(sender, configManager.getMessage("config-reloaded"));
-                } else {
-                    playerManager.sendMessage(sender, configManager.getMessage("no-permission"));
-                }
-                break;
+                return handleReload(player);
 
             default:
                 showCommandHelp(player);
@@ -94,97 +81,186 @@ public class MFlyCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    private boolean handleDeposit(Player player, String[] args) {
+        if (args.length < 2) {
+            playerManager.sendMessage(player, configManager.getMessage("mfly-deposit-usage"));
+            return true;
+        }
+
+        try {
+            double amount = Double.parseDouble(args[1]);
+            if (amount <= 0) {
+                playerManager.sendMessage(player, configManager.getMessage("amount-must-be-positive"));
+                return true;
+            }
+            flightManager.depositMoney(player, amount);
+        } catch (NumberFormatException e) {
+            playerManager.sendMessage(player, configManager.getMessage("amount-must-be-number"));
+        }
+        return true;
+    }
+
+    private boolean handleReload(CommandSender sender) {
+        if (sender.hasPermission("flycontroller.admin")) {
+            plugin.reloadConfiguration();
+            playerManager.sendMessage(sender, configManager.getMessage("config-reloaded"));
+        } else {
+            playerManager.sendMessage(sender, configManager.getMessage("no-permission"));
+        }
+        return true;
+    }
+
     private void showFlightInfo(Player player) {
-        FlightData data = plugin.getDataManager().loadPlayerData(player.getUniqueId());
+        UUID playerId = player.getUniqueId();
+        FlightData data = plugin.getDataManager().loadPlayerData(playerId);
         String currencySymbol = plugin.getEconomyManager().getCurrencySymbol();
         int currentLevel = flightManager.calculateFlightLevel(data.getBalance());
 
-        // Получаем сохраненное время
-        Long pausedTime = flightManager.getPausedFlightTime(player.getUniqueId());
-        if (pausedTime == null || pausedTime <= 0) {
+        FlightTimeInfo timeInfo = getFlightTimeInfo(player, data, playerId);
+
+        StringBuilder infoMessage = buildBaseInfo(player, data, currencySymbol, currentLevel, timeInfo);
+
+        appendLevelsInfo(infoMessage, data, currencySymbol, currentLevel);
+        appendFlightStatus(infoMessage, timeInfo, data);
+        appendSpeedsInfo(infoMessage);
+        appendCommandsInfo(infoMessage, data, currentLevel, player);
+
+        playerManager.sendMessage(player, infoMessage.toString());
+    }
+
+    private static class FlightTimeInfo {
+        final long remainingTime;
+        final long pausedTime;
+        final long cooldownTime;
+
+        FlightTimeInfo(long remainingTime, long pausedTime, long cooldownTime) {
+            this.remainingTime = remainingTime;
+            this.pausedTime = pausedTime;
+            this.cooldownTime = cooldownTime;
+        }
+    }
+
+    private FlightTimeInfo getFlightTimeInfo(Player player, FlightData data, UUID playerId) {
+        long remainingTime = flightManager.getRemainingFlightTime(player);
+        long pausedTime = flightManager.getPausedFlightTime(playerId);
+
+        if (pausedTime <= 0) {
             pausedTime = data.getPausedTime();
         }
 
-        String activeTime = TimeFormatter.formatTime(flightManager.getRemainingFlightTime(player), configManager);
-        String pausedTimeStr = TimeFormatter.formatTime(pausedTime, configManager);
-        String cooldownTimeStr = TimeFormatter.formatTime(data.getCooldownEnd() - System.currentTimeMillis(), configManager);
+        long cooldownTime = Math.max(0, data.getCooldownEnd() - System.currentTimeMillis());
 
-        StringBuilder infoMessage = new StringBuilder(configManager.getMessage("mfly-info", Map.of(
-                "{balance}", data.getBalance() + currencySymbol,
+        return new FlightTimeInfo(remainingTime, pausedTime, cooldownTime);
+    }
+
+    private StringBuilder buildBaseInfo(Player player, FlightData data, String currencySymbol, int currentLevel, FlightTimeInfo timeInfo) {
+        StringBuilder infoMessage = new StringBuilder();
+
+        infoMessage.append(configManager.getMessage("mfly-info", Map.of(
+                "{balance}", String.format("%.2f%s", data.getBalance(), currencySymbol),
                 "{level}", String.valueOf(currentLevel)
         )));
 
-        double amountForNextLevel = getAmountForNextLevel(data, plugin);
+        double amountForNextLevel = getAmountForNextLevel(data);
         if (amountForNextLevel > 0) {
-            infoMessage.append("\n").append(configManager.getMessage("mfly-info-next-level", Map.of("{amount}", amountForNextLevel + currencySymbol)));
+            infoMessage.append("\n").append(configManager.getMessage("mfly-info-next-level",
+                    Map.of("{amount}", String.format("%.2f%s", amountForNextLevel, currencySymbol))));
         } else if (currentLevel >= flightManager.getMaxFlightLevel()) {
             infoMessage.append("\n").append(configManager.getMessage("mfly-info-max-level"));
         }
 
+        return infoMessage;
+    }
+
+    private void appendLevelsInfo(StringBuilder infoMessage, FlightData data, String currencySymbol, int currentLevel) {
         infoMessage.append("\n").append(configManager.getMessage("mfly-info-levels"));
-        for (FlightTier tier : configManager.getFlightTiers().values()) {
-            String status = data.getBalance() >= tier.getMinAmount() ? "✓" : "✗";
-            String timeFormatted = TimeFormatter.formatTime(tier.getDuration() * 1000L, configManager);
 
-            Map<String, String> tierPlaceholders = Map.of(
-                    "status", status,
-                    "level", String.valueOf(tier.getLevel()),
-                    "time", timeFormatted,
-                    "cost", String.valueOf(tier.getMinAmount()),
-                    "currency", currencySymbol
-            );
+        configManager.getFlightTiers().values().stream()
+                .sorted((t1, t2) -> Integer.compare(t1.getLevel(), t2.getLevel()))
+                .forEach(tier -> appendTierInfo(infoMessage, data, currencySymbol, currentLevel, tier));
+    }
 
-            String levelLine = configManager.getMessage("mfly-info-level-format", tierPlaceholders);
+    private void appendTierInfo(StringBuilder infoMessage, FlightData data, String currencySymbol, int currentLevel, FlightTier tier) {
+        String status = data.getBalance() >= tier.getMinAmount() ?
+                configManager.getMessage("mfly-info-unlocked") :
+                configManager.getMessage("mfly-info-locked");
 
-            if (currentLevel == tier.getLevel()) {
-                levelLine = configManager.getMessage("mfly-info-level-current",
-                        Map.of("level_info", levelLine));
-            }
+        String timeFormatted = TimeFormatter.formatTime(tier.getDuration() * 1000L, configManager);
 
-            infoMessage.append("\n").append(levelLine);
+        Map<String, String> tierPlaceholders = Map.of(
+                "status", status,
+                "level", String.valueOf(tier.getLevel()),
+                "time", timeFormatted,
+                "cost", String.format("%.2f", tier.getMinAmount()),
+                "currency", currencySymbol
+        );
+
+        String levelLine = configManager.getMessage("mfly-info-level-format", tierPlaceholders);
+
+        if (currentLevel == tier.getLevel()) {
+            levelLine = configManager.getMessage("mfly-info-level-current",
+                    Map.of("level_info", levelLine));
         }
 
-        if (flightManager.getRemainingFlightTime(player) > 0) {
+        infoMessage.append("\n").append(levelLine);
+    }
+
+    private void appendFlightStatus(StringBuilder infoMessage, FlightTimeInfo timeInfo, FlightData data) {
+        if (timeInfo.remainingTime > 0) {
+            String activeTime = TimeFormatter.formatTime(timeInfo.remainingTime, configManager);
             infoMessage.append("\n").append(configManager.getMessage("mfly-info-active-flight",
                     Map.of("time", activeTime)));
         }
 
-        if (pausedTime > 0) {
+        if (timeInfo.pausedTime > 0) {
+            String pausedTimeStr = TimeFormatter.formatTime(timeInfo.pausedTime, configManager);
             infoMessage.append("\n").append(configManager.getMessage("mfly-info-paused-flight",
                     Map.of("time", pausedTimeStr)));
             infoMessage.append("\n").append(configManager.getMessage("mfly-info-paused-hint"));
         }
 
-        if (data.getCooldownEnd() > System.currentTimeMillis()) {
+        if (timeInfo.cooldownTime > 0) {
+            String cooldownTimeStr = TimeFormatter.formatTime(timeInfo.cooldownTime, configManager);
             infoMessage.append("\n").append(configManager.getMessage("mfly-info-cooldown",
                     Map.of("time", cooldownTimeStr)));
         }
+    }
 
+    private void appendSpeedsInfo(StringBuilder infoMessage) {
         infoMessage.append("\n").append(configManager.getMessage("mfly-info-speeds"));
+
         StringBuilder speedsInfo = new StringBuilder();
-        for (Integer speed : configManager.getFlightSpeeds().keySet()) {
-            String speedName = getSpeedName(speed);
-            speedsInfo.append(speed).append(" (").append(speedName).append("), ");
-        }
+        configManager.getFlightSpeeds().keySet().stream()
+                .sorted()
+                .forEach(speed -> {
+                    if (!speedsInfo.isEmpty()) {
+                        speedsInfo.append(", ");
+                    }
+                    speedsInfo.append(speed).append(" (").append(getSpeedName(speed)).append(")");
+                });
+
         if (!speedsInfo.isEmpty()) {
-            speedsInfo.setLength(speedsInfo.length() - 2);
             infoMessage.append("\n").append(speedsInfo.toString());
         }
         infoMessage.append("\n").append(configManager.getMessage("mfly-info-speeds-hint"));
+    }
 
+    private void appendCommandsInfo(StringBuilder infoMessage, FlightData data, int currentLevel, Player player) {
         infoMessage.append("\n").append(configManager.getMessage("mfly-info-commands"));
+
         if (currentLevel < flightManager.getMaxFlightLevel()) {
             infoMessage.append("\n").append(configManager.getMessage("mfly-info-help-deposit"));
         }
+
         infoMessage.append("\n").append(configManager.getMessage("mfly-info-help-activate"));
-        if (pausedTime > 0) {
+
+        if (data.getPausedTime() > 0 || flightManager.getPausedFlightTime(player.getUniqueId()) > 0) {
             infoMessage.append("\n").append(configManager.getMessage("mfly-info-help-continue"));
         }
+
         if (player.hasPermission("flycontroller.admin")) {
             infoMessage.append("\n").append(configManager.getMessage("mfly-info-help-reload"));
         }
-
-        playerManager.sendMessage(player, infoMessage.toString());
     }
 
     private void showCommandHelp(Player player) {
@@ -195,7 +271,7 @@ public class MFlyCommand implements CommandExecutor, TabCompleter {
         playerManager.sendMessage(player, helpMessage);
     }
 
-    private double getAmountForNextLevel(FlightData data, FlyPlugin plugin) {
+    private double getAmountForNextLevel(FlightData data) {
         double currentBalance = data.getBalance();
         int currentLevel = flightManager.calculateFlightLevel(currentBalance);
         int nextLevel = currentLevel + 1;
@@ -211,13 +287,7 @@ public class MFlyCommand implements CommandExecutor, TabCompleter {
     private String getSpeedName(int speed) {
         String speedName = configManager.getMessage("flyspeed-names." + speed);
         if (speedName.startsWith("message.flyspeed-names.")) {
-            return switch (speed) {
-                case 1 -> "медленно";
-                case 2 -> "нормально";
-                case 3 -> "быстро";
-                case 4 -> "очень быстро";
-                default -> "уровень " + speed;
-            };
+            return speed + "lvl";
         }
         return speedName;
     }
@@ -227,13 +297,25 @@ public class MFlyCommand implements CommandExecutor, TabCompleter {
         List<String> completions = new ArrayList<>();
 
         if (args.length == 1) {
-            completions.add("info");
-            completions.add("deposit");
-            completions.add("activate");
-            completions.add("continue");
+            List<String> commands = new ArrayList<>();
+            commands.add("info");
+            commands.add("deposit");
+            commands.add("activate");
+            commands.add("continue");
+
             if (sender.hasPermission("flycontroller.admin")) {
-                completions.add("reload");
+                commands.add("reload");
             }
+
+            // Фильтрация по введённому тексту
+            String input = args[0].toLowerCase();
+            for (String cmd : commands) {
+                if (cmd.startsWith(input)) {
+                    completions.add(cmd);
+                }
+            }
+        } else if (args.length == 2 && "deposit".equalsIgnoreCase(args[0])) {
+            completions.add("<amount>");
         }
 
         return completions;

@@ -42,9 +42,7 @@ public class FlySpeedCommand implements CommandExecutor, TabCompleter {
         }
 
         if (args.length == 0) {
-            Map<String, String> placeholders = Map.of(
-                    "speeds", getAvailableSpeedsString()
-            );
+            Map<String, String> placeholders = Map.of("speeds", getAvailableSpeedsString());
             playerManager.sendMessage(player, configManager.getMessage("flyspeed-usage", placeholders));
             return true;
         }
