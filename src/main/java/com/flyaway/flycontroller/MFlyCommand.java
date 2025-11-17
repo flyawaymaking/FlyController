@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class MFlyCommand implements CommandExecutor, TabCompleter {
     private final FlyPlugin plugin;
@@ -19,12 +20,12 @@ public class MFlyCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("Эта команда только для игроков!");
+            plugin.sendMessage(sender, plugin.getConfigManager().getMessage("only-players"));
             return true;
         }
 
         if (!player.hasPermission("flycontroller.mfly")) {
-            player.sendMessage("§cУ вас нет разрешения на использование этой команды!");
+            plugin.sendMessage(player, plugin.getConfigManager().getMessage("no-permission"));
             return true;
         }
 
@@ -40,18 +41,18 @@ public class MFlyCommand implements CommandExecutor, TabCompleter {
 
             case "deposit":
                 if (args.length < 2) {
-                    player.sendMessage("§cИспользование: /mfly deposit <сумма>");
+                    plugin.sendMessage(player, plugin.getConfigManager().getMessage("mfly-deposit-usage"));
                     return true;
                 }
                 try {
                     double amount = Double.parseDouble(args[1]);
                     if (amount <= 0) {
-                        player.sendMessage("§cСумма должна быть положительной!");
+                        plugin.sendMessage(player, plugin.getConfigManager().getMessage("amount-must-be-positive"));
                         return true;
                     }
                     plugin.depositMoney(player, amount);
                 } catch (NumberFormatException e) {
-                    player.sendMessage("§cСумма должна быть числом!");
+                    plugin.sendMessage(player, plugin.getConfigManager().getMessage("amount-must-be-number"));
                 }
                 break;
 
@@ -66,21 +67,14 @@ public class MFlyCommand implements CommandExecutor, TabCompleter {
             case "reload":
                 if (sender.hasPermission("flycontroller.admin")) {
                     plugin.reloadConfiguration();
-                    sender.sendMessage("§aКонфигурация FlyController перезагружена!");
+                    plugin.sendMessage(sender, plugin.getConfigManager().getMessage("config-reloaded"));
                 } else {
-                    sender.sendMessage("§cУ вас нет разрешения на эту команду!");
+                    plugin.sendMessage(sender, plugin.getConfigManager().getMessage("no-permission"));
                 }
                 break;
 
             default:
-                player.sendMessage("§cНеизвестная команда. Используйте:");
-                player.sendMessage("§e/mfly info §7- Информация о системе полётов");
-                player.sendMessage("§e/mfly deposit <сумма> §7- Внести деньги на счёт");
-                player.sendMessage("§e/mfly activate §7- Активировать полёт");
-                player.sendMessage("§e/mfly continue §7- Продолжить сохранённый полёт");
-                if (sender.hasPermission("flycontroller.admin")) {
-                    player.sendMessage("§e/mfly reload §7- Перезагрузить конфигурацию");
-                }
+                showCommandHelp(player);
                 break;
         }
 
@@ -89,112 +83,105 @@ public class MFlyCommand implements CommandExecutor, TabCompleter {
 
     private void showFlightInfo(Player player) {
         FlightData data = plugin.getDataManager().loadPlayerData(player.getUniqueId());
-
         String currencySymbol = plugin.getEconomyManager().getCurrencySymbol();
-
-        player.sendMessage("§6=== Система временного полёта ===");
-        player.sendMessage("§aВаш баланс: §e" + data.getBalance() + currencySymbol + "§a денег");
-
         int currentLevel = plugin.calculateFlightLevel(data.getBalance());
-        player.sendMessage("§aТекущий уровень: §e" + currentLevel);
 
-        // Показываем прогресс до следующего уровня
-        double amountForNextLevel = getAmountForNextLevel(data, plugin);
-        if (amountForNextLevel > 0) {
-            player.sendMessage("§aДо следующего уровня: §e" + amountForNextLevel + currencySymbol);
-        } else if (currentLevel >= plugin.getMaxFlightLevel()) {
-            player.sendMessage("§a§lВы достигли максимального уровня! §a🎉");
-        }
-
-        player.sendMessage("");
-        player.sendMessage("§6Уровни полёта:");
-
-        // Получаем уровни из конфига
-        for (FlightTier tier : plugin.getFlightTiers().values()) {
-            String status = data.getBalance() >= tier.getMinAmount() ? "§a✓" : "§c✗";
-
-            // Форматируем время - минуты и секунды
-            int minutes = tier.getDuration() / 60;
-            int seconds = tier.getDuration() % 60;
-            String timeString = minutes + " минут" + (seconds > 0 ? " " + seconds + " секунд" : "");
-
-            String levelInfo = "Уровень " + tier.getLevel() + "§7: " +
-                    timeString + " - §e" + tier.getMinAmount() + currencySymbol;
-
-            // Подсвечиваем текущий уровень
-            if (currentLevel == tier.getLevel()) {
-                levelInfo = "§e➤ " + levelInfo + " §7(текущий)";
-            }
-
-            player.sendMessage(status + " " + levelInfo);
-        }
-
-        // Показываем оставшееся время активного полёта
-        Long remainingTime = plugin.getRemainingFlightTime(player);
-        if (remainingTime > 0) {
-            long minutes = remainingTime / 60000;
-            long seconds = (remainingTime % 60000) / 1000;
-            player.sendMessage("");
-            player.sendMessage("§aАктивный полёт: §e" + minutes + " минут " + seconds + " секунд");
-        }
-
-        // Показываем сохранённое время
+        // Получаем сохраненное время
         Long pausedTime = plugin.getPausedFlightTime(player);
         if (pausedTime == null || pausedTime <= 0) {
             pausedTime = data.getPausedTime();
         }
 
-        if (pausedTime > 0) {
-            long minutes = pausedTime / 60000;
-            long seconds = (pausedTime % 60000) / 1000;
-            player.sendMessage("");
-            player.sendMessage("§bСохранённый полёт: §e" + minutes + " минут " + seconds + " секунд");
-            player.sendMessage("§bИспользуйте §e/mfly continue§b для активации");
+        String activeTime = plugin.formatTime(plugin.getRemainingFlightTime(player));
+        String pausedTimeStr = plugin.formatTime(pausedTime);
+        String cooldownTimeStr = plugin.formatTime(data.getCooldownEnd() - System.currentTimeMillis());
+
+        String infoMessage = plugin.getConfigManager().getMessage("mfly-info", Map.of(
+                "{balance}", data.getBalance() + currencySymbol,
+                "{level}", String.valueOf(currentLevel)
+        ));
+
+        double amountForNextLevel = getAmountForNextLevel(data, plugin);
+        if (amountForNextLevel > 0) {
+            infoMessage += "\n" + plugin.getConfigManager().getMessage("mfly-info-next-level", Map.of("{amount}", amountForNextLevel + currencySymbol));
+        } else if (currentLevel >= plugin.getMaxFlightLevel()) {
+            infoMessage += "\n" + plugin.getConfigManager().getMessage("mfly-info-max-level");
         }
 
-        // Показываем перезарядку
-        if (data.getCooldownEnd() > System.currentTimeMillis()) {
-            long remainingCooldown = data.getCooldownEnd() - System.currentTimeMillis();
-            long cooldownMinutes = remainingCooldown / 60000;
-            long cooldownSeconds = (remainingCooldown % 60000) / 1000;
+        infoMessage += "\n" + plugin.getConfigManager().getMessage("mfly-info-levels");
+        for (FlightTier tier : plugin.getFlightTiers().values()) {
+            String status = data.getBalance() >= tier.getMinAmount() ? "✓" : "✗";
+            String timeFormatted = plugin.formatTime(tier.getDuration() * 1000L);
 
-            if (cooldownMinutes > 0) {
-                player.sendMessage("§cПерезарядка: §e" + cooldownMinutes + " минут " + cooldownSeconds + " секунд");
-            } else {
-                player.sendMessage("§cПерезарядка: §e" + cooldownSeconds + " секунд");
+            Map<String, String> tierPlaceholders = Map.of(
+                    "status", status,
+                    "level", String.valueOf(tier.getLevel()),
+                    "time", timeFormatted,
+                    "cost", String.valueOf(tier.getMinAmount()),
+                    "currency", currencySymbol
+            );
+
+            String levelLine = plugin.getConfigManager().getMessage("mfly-info-level-format", tierPlaceholders);
+
+            if (currentLevel == tier.getLevel()) {
+                levelLine = plugin.getConfigManager().getMessage("mfly-info-level-current",
+                        Map.of("level_info", levelLine));
             }
+
+            infoMessage += "\n" + levelLine;
         }
 
-        // Показываем доступные скорости из конфига
-        player.sendMessage("");
-        player.sendMessage("§6Доступные скорости полёта:");
+        if (plugin.getRemainingFlightTime(player) > 0) {
+            infoMessage += "\n" + plugin.getConfigManager().getMessage("mfly-info-active-flight",
+                    Map.of("time", activeTime));
+        }
+
+        if (pausedTime > 0) {
+            infoMessage += "\n" + plugin.getConfigManager().getMessage("mfly-info-paused-flight",
+                    Map.of("time", pausedTimeStr));
+            infoMessage += "\n" + plugin.getConfigManager().getMessage("mfly-info-paused-hint");
+        }
+
+        if (data.getCooldownEnd() > System.currentTimeMillis()) {
+            infoMessage += "\n" + plugin.getConfigManager().getMessage("mfly-info-cooldown",
+                    Map.of("time", cooldownTimeStr));
+        }
+
+        infoMessage += "\n" + plugin.getConfigManager().getMessage("mfly-info-speeds");
         StringBuilder speedsInfo = new StringBuilder();
         for (Integer speed : plugin.getFlySpeeds().keySet()) {
             String speedName = getSpeedName(speed);
-            speedsInfo.append("§e").append(speed).append("§7 (").append(speedName).append(")§f, ");
+            speedsInfo.append(speed).append(" (").append(speedName).append("), ");
         }
         if (!speedsInfo.isEmpty()) {
-            speedsInfo.setLength(speedsInfo.length() - 2); // Убираем последнюю запятую
-            player.sendMessage(speedsInfo.toString());
-            player.sendMessage("§7Используйте §e/flyspeed <уровень>§7 для изменения скорости");
+            speedsInfo.setLength(speedsInfo.length() - 2);
+            infoMessage += "\n" + speedsInfo.toString();
         }
+        infoMessage += "\n" + plugin.getConfigManager().getMessage("mfly-info-speeds-hint");
 
-        player.sendMessage("");
+        infoMessage += "\n" + plugin.getConfigManager().getMessage("mfly-info-commands");
         if (currentLevel < plugin.getMaxFlightLevel()) {
-            player.sendMessage("§e/mfly deposit <сумма> §7- Внести деньги на счёт");
+            infoMessage += "\n" + plugin.getConfigManager().getMessage("mfly-info-help-deposit");
         }
-        player.sendMessage("§e/mfly activate §7- Активировать полёт");
+        infoMessage += "\n" + plugin.getConfigManager().getMessage("mfly-info-help-activate");
         if (pausedTime > 0) {
-            player.sendMessage("§e/mfly continue §7- Продолжить сохранённый полёт");
+            infoMessage += "\n" + plugin.getConfigManager().getMessage("mfly-info-help-continue");
         }
         if (player.hasPermission("flycontroller.admin")) {
-            player.sendMessage("§e/mfly reload §7- Перезагрузить конфигурацию");
+            infoMessage += "\n" + plugin.getConfigManager().getMessage("mfly-info-help-reload");
         }
+
+        plugin.sendMessage(player, infoMessage);
     }
 
-    /**
-     * Вспомогательный метод для расчёта суммы до следующего уровня
-     */
+    private void showCommandHelp(Player player) {
+        String helpMessage = plugin.getConfigManager().getMessage("mfly-help");
+        if (player.hasPermission("flycontroller.admin")) {
+            helpMessage += "\n" + plugin.getConfigManager().getMessage("mfly-help-reload");
+        }
+        plugin.sendMessage(player, helpMessage);
+    }
+
     private double getAmountForNextLevel(FlightData data, FlyPlugin plugin) {
         double currentBalance = data.getBalance();
         int currentLevel = plugin.calculateFlightLevel(currentBalance);
@@ -202,23 +189,24 @@ public class MFlyCommand implements CommandExecutor, TabCompleter {
 
         FlightTier nextTier = plugin.getFlightTiers().get(nextLevel);
         if (nextTier == null) {
-            return 0; // Максимальный уровень уже достигнут
+            return 0;
         }
 
         return Math.max(0, nextTier.getMinAmount() - currentBalance);
     }
 
-    /**
-     * Возвращает текстовое название скорости
-     */
     private String getSpeedName(int speed) {
-        return switch (speed) {
-            case 1 -> "медленно";
-            case 2 -> "нормально";
-            case 3 -> "быстро";
-            case 4 -> "очень быстро";
-            default -> "уровень " + speed;
-        };
+        String speedName = plugin.getConfigManager().getMessage("flyspeed-names." + speed);
+        if (speedName.startsWith("message.flyspeed-names.")) {
+            return switch (speed) {
+                case 1 -> "медленно";
+                case 2 -> "нормально";
+                case 3 -> "быстро";
+                case 4 -> "очень быстро";
+                default -> "уровень " + speed;
+            };
+        }
+        return speedName;
     }
 
     @Override

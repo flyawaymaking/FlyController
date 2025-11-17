@@ -1,9 +1,8 @@
 package com.flyaway.flycontroller;
 
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
+import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
@@ -77,6 +76,31 @@ public class ConfigManager {
         }
 
         return speeds;
+    }
+
+    public @NotNull String getPrefix() {
+        return config.getString("prefix", "<gray>[<blue>FlyController</blue>]</gray>");
+    }
+
+    public @NotNull String getMessage(String key) {
+        return getMessage(key, null);
+    }
+
+    public @NotNull String getMessage(String key, Map<String, String> placeholders) {
+        String message = config.getString("messages." + key, "<red>message." + key + " not-found");
+        return formatMessage(message, placeholders);
+    }
+
+    private @NotNull String formatMessage(String message, Map<String, String> placeholders) {
+        if (message == null || message.isEmpty()) return "";
+        message = message.replaceAll("\\s+$", "");
+
+        if (placeholders != null) {
+            for (Map.Entry<String, String> entry : placeholders.entrySet()) {
+                message = message.replace("{" + entry.getKey() + "}", entry.getValue());
+            }
+        }
+        return message;
     }
 
     public List<String> getWorlds() {

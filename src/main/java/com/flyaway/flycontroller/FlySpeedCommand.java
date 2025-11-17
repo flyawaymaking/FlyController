@@ -20,52 +20,57 @@ public class FlySpeedCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("§cЭта команда только для игроков!");
+            plugin.sendMessage(sender, plugin.getConfigManager().getMessage("only-players"));
             return true;
         }
 
-        // ПРОВЕРКА ПРАВА ДОСТУПА
         if (!player.hasPermission("flycontroller.flyspeed")) {
-            player.sendMessage("§cУ вас нет разрешения на использование этой команды!");
+            plugin.sendMessage(player, plugin.getConfigManager().getMessage("no-permission"));
             return true;
         }
 
-        // Проверка мира
         if (!plugin.isWorldAllowed(player.getWorld())) {
-            player.sendMessage("§cКоманда /flyspeed доступна только в разрешённых мирах!");
+            plugin.sendMessage(player, plugin.getConfigManager().getMessage("flyspeed-not-allowed-world"));
             return true;
         }
 
-        // Проверка аргументов
         if (args.length == 0) {
-            player.sendMessage("§cИспользование: /flyspeed <скорость>");
-            player.sendMessage("§6Доступные скорости: " + getAvailableSpeedsString());
+            Map<String, String> placeholders = Map.of(
+                    "speeds", getAvailableSpeedsString()
+            );
+            plugin.sendMessage(player, plugin.getConfigManager().getMessage("flyspeed-usage", placeholders));
             return true;
         }
 
         try {
             int speed = Integer.parseInt(args[0]);
 
-            // Получаем доступные скорости из конфига
             Map<Integer, Float> availableSpeeds = plugin.getFlySpeeds();
 
-            // Проверка доступности скорости
             if (!availableSpeeds.containsKey(speed)) {
-                player.sendMessage("§cСкорость " + speed + " недоступна!");
-                player.sendMessage("§6Доступные скорости: " + getAvailableSpeedsString());
+                Map<String, String> placeholders = Map.of(
+                        "speed", String.valueOf(speed),
+                        "speeds", getAvailableSpeedsString()
+                );
+                plugin.sendMessage(player, plugin.getConfigManager().getMessage("flyspeed-not-available", placeholders));
                 return true;
             }
 
-            // Устанавливаем скорость полёта из конфига
             float flySpeed = availableSpeeds.get(speed);
             player.setFlySpeed(flySpeed);
 
             String speedName = getSpeedName(speed);
-            player.sendMessage("§aСкорость полёта установлена на: §e" + speedName + "§a (" + speed + ")");
+            Map<String, String> placeholders = Map.of(
+                    "speed_name", speedName,
+                    "speed_level", String.valueOf(speed)
+            );
+            plugin.sendMessage(player, plugin.getConfigManager().getMessage("flyspeed-set", placeholders));
 
         } catch (NumberFormatException e) {
-            player.sendMessage("§cСкорость должна быть числом!");
-            player.sendMessage("§6Доступные скорости: " + getAvailableSpeedsString());
+            Map<String, String> placeholders = Map.of(
+                    "speeds", getAvailableSpeedsString()
+            );
+            plugin.sendMessage(player, plugin.getConfigManager().getMessage("flyspeed-invalid-number", placeholders));
         }
 
         return true;
@@ -76,7 +81,6 @@ public class FlySpeedCommand implements CommandExecutor, TabCompleter {
         List<String> completions = new ArrayList<>();
 
         if (sender.hasPermission("flycontroller.flyspeed") && args.length == 1) {
-            // Показываем доступные скорости из конфига
             for (Integer speed : plugin.getFlySpeeds().keySet()) {
                 completions.add(speed.toString());
             }
@@ -85,9 +89,6 @@ public class FlySpeedCommand implements CommandExecutor, TabCompleter {
         return completions;
     }
 
-    /**
-     * Возвращает строку с доступными скоростями для сообщения
-     */
     private String getAvailableSpeedsString() {
         Map<Integer, Float> speeds = plugin.getFlySpeeds();
         List<String> speedList = new ArrayList<>();
@@ -101,17 +102,11 @@ public class FlySpeedCommand implements CommandExecutor, TabCompleter {
         return String.join(", ", speedList);
     }
 
-    /**
-     * Возвращает текстовое название скорости
-     */
     private String getSpeedName(int speed) {
-        // Можно добавить в конфиг названия скоростей, но пока оставим фиксированные
-        return switch (speed) {
-            case 1 -> "медленно";
-            case 2 -> "нормально";
-            case 3 -> "быстро";
-            case 4 -> "очень быстро";
-            default -> "уровень " + speed;
-        };
+        String speedName = plugin.getConfigManager().getMessage("flyspeed-names." + speed);
+        if (speedName.startsWith("message.flyspeed-names.")) {
+            return speed + "lvl";
+        }
+        return speedName;
     }
 }

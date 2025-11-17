@@ -24,9 +24,9 @@ FlyController — умная система временного полёта с
 # Настройки валюты
 currency: "money"
 
-# Миры где разрешён полёт (список)
-worlds:
-  - "world"
+# Миры, где разрешён полёт (ставьте пустым - чтобы разрешить везде)
+worlds: [ ]
+#  - "world"
 
 # Перезарядка после использования полёта (в миллисекундах)
 cooldown: 600000
@@ -37,7 +37,7 @@ flight-tiers:
     cost: 50000
     duration: 120
   2:
-    cost: 100000  
+    cost: 100000
     duration: 300
   3:
     cost: 200000
@@ -48,6 +48,11 @@ fly-speeds:
   1: 0.1
   2: 0.2
   3: 0.4
+
+messages:
+  # ActionBar
+  action-bar: "<green>⏰ <yellow>{minutes}:{seconds} <green>осталось полёта"
+...
 ```
 
 ---
