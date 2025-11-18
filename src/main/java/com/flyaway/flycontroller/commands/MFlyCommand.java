@@ -6,6 +6,7 @@ import com.flyaway.flycontroller.managers.FlightManager;
 import com.flyaway.flycontroller.managers.PlayerManager;
 import com.flyaway.flycontroller.models.FlightData;
 import com.flyaway.flycontroller.models.FlightTier;
+import com.flyaway.flycontroller.utils.NumberFormatter;
 import com.flyaway.flycontroller.utils.TimeFormatter;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -156,14 +157,14 @@ public class MFlyCommand implements CommandExecutor, TabCompleter {
         StringBuilder infoMessage = new StringBuilder();
 
         infoMessage.append(configManager.getMessage("mfly-info", Map.of(
-                "balance", String.format("%.2f%s", data.getBalance(), currencySymbol),
+                "balance", NumberFormatter.formatWithCurrency(data.getBalance(), currencySymbol),
                 "level", String.valueOf(currentLevel)
         )));
 
         double amountForNextLevel = getAmountForNextLevel(data);
         if (amountForNextLevel > 0) {
             infoMessage.append("\n").append(configManager.getMessage("mfly-info-next-level",
-                    Map.of("amount", String.format("%.2f%s", amountForNextLevel, currencySymbol))));
+                    Map.of("amount", NumberFormatter.formatWithCurrency(amountForNextLevel, currencySymbol))));
         } else if (currentLevel >= flightManager.getMaxFlightLevel()) {
             infoMessage.append("\n").append(configManager.getMessage("mfly-info-max-level"));
         }
@@ -190,7 +191,7 @@ public class MFlyCommand implements CommandExecutor, TabCompleter {
                 "status", status,
                 "level", String.valueOf(tier.getLevel()),
                 "time", timeFormatted,
-                "cost", String.format("%.2f", tier.getMinAmount()),
+                "cost", NumberFormatter.format(tier.getMinAmount()),
                 "currency", currencySymbol
         );
 

@@ -3,6 +3,7 @@ package com.flyaway.flycontroller.managers;
 import com.flyaway.flycontroller.models.FlightData;
 import com.flyaway.flycontroller.models.FlightTier;
 import com.flyaway.flycontroller.FlyPlugin;
+import com.flyaway.flycontroller.utils.NumberFormatter;
 import com.flyaway.flycontroller.utils.TimeFormatter;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -260,7 +261,7 @@ public class FlightManager {
             }
 
             Map<String, String> placeholders = Map.of(
-                    "amount", String.valueOf(maxAmountNeeded),
+                    "amount", NumberFormatter.format(maxAmountNeeded),
                     "currency", economyManager.getCurrencySymbol()
             );
             playerManager.sendMessage(player, configManager.getMessage("deposit-max-amount-suggestion", placeholders));
@@ -288,9 +289,9 @@ public class FlightManager {
         int newLevel = calculateFlightLevel(newBalance);
 
         Map<String, String> placeholders = Map.of(
-                "amount", String.valueOf(amount),
+                "amount", NumberFormatter.format(amount),
                 "currency", currencySymbol,
-                "balance", String.valueOf(newBalance),
+                "balance", NumberFormatter.format(newBalance),
                 "level", String.valueOf(newLevel)
         );
         playerManager.sendMessage(player, configManager.getMessage("deposit-success", placeholders));

@@ -24,9 +24,10 @@ public class ActionBarManager {
         }
         long minutes = remainingTime / 60000;
         long seconds = (remainingTime % 60000) / 1000;
+
         String timeString = configManager.getMessage("action-bar", Map.of(
                 "minutes", String.valueOf(minutes),
-                "seconds", String.valueOf(seconds)
+                "seconds", String.format("%02d", seconds) // Всегда 2 цифры
         ));
         player.sendActionBar(miniMessage.deserialize(timeString));
     }

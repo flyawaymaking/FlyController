@@ -1,6 +1,7 @@
 package com.flyaway.flycontroller.managers;
 
 import com.flyaway.flycontroller.FlyPlugin;
+import com.flyaway.flycontroller.utils.NumberFormatter;
 import org.bukkit.entity.Player;
 import su.nightexpress.coinsengine.api.CoinsEngineAPI;
 import su.nightexpress.coinsengine.api.currency.Currency;
@@ -51,7 +52,7 @@ public class EconomyManager {
             if (!hasMoney) {
                 playerManager.sendMessage(player, configManager.getMessage("economy-not-enough", Map.of(
                         "need", amount + getCurrencySymbol(),
-                        "balance", balance + getCurrencySymbol())
+                        "balance", NumberFormatter.formatWithCurrency(balance, getCurrencySymbol()))
                 ));
             }
 

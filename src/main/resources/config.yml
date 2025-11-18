@@ -64,7 +64,7 @@ messages:
   continue-not-allowed-world: "<red>Вы можете продолжить полёт только в разрешённом мире!"
   max-level-reached: |
     <green>Вы уже достигли максимального уровня полёта (<yellow>{level}</yellow>)!
-    <green>Дальнейшее пополнение счёта не требуется
+    <light_purple>Дальнейшее пополнение счёта не требуется!
   deposit-max-amount-suggestion: |
     <yellow>Для достижения максимального уровня вам нужно внести только <green>{amount}{currency}</green>
     <yellow>Хотите внести именно эту сумму? Используйте: <green>/mfly deposit {amount}
@@ -99,9 +99,9 @@ messages:
   flyspeed-set: "<green>Скорость полёта установлена на: <yellow>{speed_name}</yellow> (<white>{speed_level}</white>)"
 
   flyspeed-names:
-    1: "обычная"
-    2: "быстрая"
-    3: "очень быстрая"
+    1: "<green>обычная</green>"
+    2: "<aqua>быстрая</aqua>"
+    3: "<light_purple>очень быстрая</light_purple>"
 
   # Формат времени
   time-format: "{minutes} минут {seconds} секунд"
@@ -127,10 +127,10 @@ messages:
   mfly-info-next-level: "<green>До следующего уровня: <yellow>{amount}</yellow>"
   mfly-info-max-level: "<green>Вы достигли максимального уровня! 🎉"
   mfly-info-levels: "<gold>Уровни полёта:"
-  mfly-info-unlocked: "✓"
-  mfly-info-locked: "✗"
+  mfly-info-unlocked: "<green>✓</green>"
+  mfly-info-locked: "<red>✗</red>"
   mfly-info-level-format: "{status} Уровень {level}: {time} - {cost}{currency}"
-  mfly-info-level-current: "➤ {level_info} <gray>(текущий)</gray>"
+  mfly-info-level-current: "<yellow>{level_info}</yellow> <gray>(текущий)</gray>"
   mfly-info-active-flight: "<green>Активный полёт: <yellow>{time}</yellow>"
   mfly-info-paused-flight: "<aqua>Сохранённый полёт: <yellow>{time}</yellow>"
   mfly-info-paused-hint: "<aqua>Используйте <yellow>/mfly continue</yellow> для активации"
