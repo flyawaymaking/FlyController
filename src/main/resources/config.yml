@@ -21,6 +21,12 @@ flight-tiers:
   3:
     cost: 200000
     duration: 600
+  4:
+    cost: 400000
+    duration: 900
+  5:
+    cost: 800000
+    duration: 1200
 
 # Скорости полёта (значения от 0.0 до 1.0)
 fly-speeds:
@@ -93,9 +99,9 @@ messages:
   flyspeed-set: "<green>Скорость полёта установлена на: <yellow>{speed_name}</yellow> (<white>{speed_level}</white>)"
 
   flyspeed-names:
-    1: "медленно"
-    2: "нормально"
-    3: "быстро"
+    1: "обычная"
+    2: "быстрая"
+    3: "очень быстрая"
 
   # Формат времени
   time-format: "{minutes} минут {seconds} секунд"
