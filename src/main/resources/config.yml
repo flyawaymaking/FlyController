@@ -39,7 +39,8 @@ messages:
   only-players: "<red>Эта команда только для игроков!"
   no-permission: "<red>У вас нет разрешения на использование этой команды!"
   fly-command-not-allowed: "<red>Команда /fly доступна только в разрешённом мире!"
-  flight-already-active: "<yellow>У вас уже есть активный полёт!"
+  flight-active: "<yellow>Вы и так можете летать!"
+  flight-reactivate: "<yellow>Теперь вы можете летать!"
   flight-restored: "<green>Сохранённый полёт автоматически восстановлен! Оставшееся время: <yellow>{time}"
   flight-restored-failed: "<red>Не удалось автоматически активировать сохранённый полёт. Используйте <yellow>/mfly continue"
   flight-saved-comeback: |

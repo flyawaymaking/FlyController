@@ -53,6 +53,7 @@ public class FlightManager {
     }
 
     public boolean activateFlight(Player player) {
+        if (haveActiveFlight(player)) return false;
         UUID playerId = player.getUniqueId();
         FlightData data = dataManager.loadPlayerData(playerId);
 
@@ -126,12 +127,8 @@ public class FlightManager {
     }
 
     public boolean activatePausedFlight(Player player) {
+        if (haveActiveFlight(player)) return false;
         UUID playerId = player.getUniqueId();
-
-        if (activeFlightTimes.containsKey(playerId)) {
-            playerManager.sendMessage(player, configManager.getMessage("flight-already-active"));
-            return false;
-        }
 
         Long pausedTime = getValidPausedTime(playerId);
         if (pausedTime == null || pausedTime <= 0) {
@@ -221,6 +218,20 @@ public class FlightManager {
         data.setFlightEndTime(endTime);
         data.setCooldownEnd(endTime + configManager.getCooldownTime());
         dataManager.savePlayerData(playerId, data);
+    }
+
+    private boolean haveActiveFlight(Player player) {
+        if (player.getAllowFlight()) {
+            playerManager.sendMessage(player, configManager.getMessage("flight-active"));
+            return true;
+        }
+
+        if (activeFlightTimes.containsKey(player.getUniqueId())) {
+            enableFlight(player);
+            playerManager.sendMessage(player, configManager.getMessage("flight-reactivate"));
+            return true;
+        }
+        return false;
     }
 
     private boolean validateEconomy() {
