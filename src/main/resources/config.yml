@@ -120,6 +120,8 @@ messages:
   mfly-info-next-level: "<green>До следующего уровня: <yellow>{amount}</yellow>"
   mfly-info-max-level: "<green>Вы достигли максимального уровня! 🎉"
   mfly-info-levels: "<gold>Уровни полёта:"
+  mfly-info-unlocked: "✓"
+  mfly-info-locked: "✗"
   mfly-info-level-format: "{status} Уровень {level}: {time} - {cost}{currency}"
   mfly-info-level-current: "➤ {level_info} <gray>(текущий)</gray>"
   mfly-info-active-flight: "<green>Активный полёт: <yellow>{time}</yellow>"

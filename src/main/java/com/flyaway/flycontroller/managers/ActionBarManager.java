@@ -22,7 +22,12 @@ public class ActionBarManager {
         if (remainingTime <= 0) {
             return;
         }
-        String timeString = configManager.getMessage("action-bar", Map.of("time", TimeFormatter.formatTime(remainingTime, configManager)));
+        long minutes = remainingTime / 60000;
+        long seconds = (remainingTime % 60000) / 1000;
+        String timeString = configManager.getMessage("action-bar", Map.of(
+                "minutes", String.valueOf(minutes),
+                "seconds", String.valueOf(seconds)
+        ));
         player.sendActionBar(miniMessage.deserialize(timeString));
     }
 }

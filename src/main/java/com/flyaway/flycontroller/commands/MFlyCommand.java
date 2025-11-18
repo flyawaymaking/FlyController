@@ -123,7 +123,6 @@ public class MFlyCommand implements CommandExecutor, TabCompleter {
         appendLevelsInfo(infoMessage, data, currencySymbol, currentLevel);
         appendFlightStatus(infoMessage, timeInfo, data);
         appendSpeedsInfo(infoMessage);
-        appendCommandsInfo(infoMessage, data, currentLevel, player);
 
         playerManager.sendMessage(player, infoMessage.toString());
     }
@@ -157,14 +156,14 @@ public class MFlyCommand implements CommandExecutor, TabCompleter {
         StringBuilder infoMessage = new StringBuilder();
 
         infoMessage.append(configManager.getMessage("mfly-info", Map.of(
-                "{balance}", String.format("%.2f%s", data.getBalance(), currencySymbol),
-                "{level}", String.valueOf(currentLevel)
+                "balance", String.format("%.2f%s", data.getBalance(), currencySymbol),
+                "level", String.valueOf(currentLevel)
         )));
 
         double amountForNextLevel = getAmountForNextLevel(data);
         if (amountForNextLevel > 0) {
             infoMessage.append("\n").append(configManager.getMessage("mfly-info-next-level",
-                    Map.of("{amount}", String.format("%.2f%s", amountForNextLevel, currencySymbol))));
+                    Map.of("amount", String.format("%.2f%s", amountForNextLevel, currencySymbol))));
         } else if (currentLevel >= flightManager.getMaxFlightLevel()) {
             infoMessage.append("\n").append(configManager.getMessage("mfly-info-max-level"));
         }
@@ -243,24 +242,6 @@ public class MFlyCommand implements CommandExecutor, TabCompleter {
             infoMessage.append("\n").append(speedsInfo.toString());
         }
         infoMessage.append("\n").append(configManager.getMessage("mfly-info-speeds-hint"));
-    }
-
-    private void appendCommandsInfo(StringBuilder infoMessage, FlightData data, int currentLevel, Player player) {
-        infoMessage.append("\n").append(configManager.getMessage("mfly-info-commands"));
-
-        if (currentLevel < flightManager.getMaxFlightLevel()) {
-            infoMessage.append("\n").append(configManager.getMessage("mfly-info-help-deposit"));
-        }
-
-        infoMessage.append("\n").append(configManager.getMessage("mfly-info-help-activate"));
-
-        if (data.getPausedTime() > 0 || flightManager.getPausedFlightTime(player.getUniqueId()) > 0) {
-            infoMessage.append("\n").append(configManager.getMessage("mfly-info-help-continue"));
-        }
-
-        if (player.hasPermission("flycontroller.admin")) {
-            infoMessage.append("\n").append(configManager.getMessage("mfly-info-help-reload"));
-        }
     }
 
     private void showCommandHelp(Player player) {
