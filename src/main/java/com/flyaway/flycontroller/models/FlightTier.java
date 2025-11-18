@@ -1,4 +1,4 @@
-package com.flyaway.flycontroller;
+package com.flyaway.flycontroller.models;
 
 public class FlightTier {
     private final int level;
