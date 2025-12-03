@@ -27,7 +27,7 @@ public class ActionBarManager {
 
         String timeString = configManager.getMessage("action-bar", Map.of(
                 "minutes", String.valueOf(minutes),
-                "seconds", String.format("%02d", seconds) // Всегда 2 цифры
+                "seconds", String.format("%02d", seconds)
         ));
         player.sendActionBar(miniMessage.deserialize(timeString));
     }

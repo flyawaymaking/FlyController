@@ -51,7 +51,6 @@ public class ConfigManager {
             }
         }
 
-        // Если в конфиге нет уровней, используем значения по умолчанию
         if (tiers.isEmpty()) {
             tiers.put(1, new FlightTier(1, 50000, 120));
             tiers.put(2, new FlightTier(2, 100000, 300));

@@ -46,7 +46,6 @@ public class FlightManager {
         cancelTask(flightTimerTask);
         cancelTask(actionBarTimerTask);
 
-        // Сохраняем активные полёты при выключении
         activeFlightTimes.keySet().stream()
                 .map(Bukkit::getPlayer)
                 .filter(player -> player != null && player.isOnline())
@@ -119,9 +118,9 @@ public class FlightManager {
 
         double newBalance = currentBalance + amount;
         data.setBalance(newBalance);
+        handleLevelUp(player, data, newBalance);
         dataManager.savePlayerData(playerId, data);
 
-        handleLevelUp(player, data, newBalance);
         sendDepositSuccessMessage(player, amount, newBalance);
 
         return true;
@@ -185,7 +184,6 @@ public class FlightManager {
         }
     }
 
-    // Вспомогательные приватные методы
     private boolean validateFlightActivation(Player player, FlightData data) {
         if (data.getBalance() == 0) {
             playerManager.sendMessage(player, configManager.getMessage("no-balance"));
@@ -240,10 +238,9 @@ public class FlightManager {
     }
 
     private boolean validateDeposit(Player player, FlightData data, double currentBalance, double amount) {
-        int currentLevel = calculateFlightLevel(currentBalance);
         int maxLevel = getMaxFlightLevel();
 
-        if (currentLevel >= maxLevel) {
+        if (data.getMaxUnlockedLevel() >= maxLevel) {
             playerManager.sendMessage(player, configManager.getMessage("max-level-reached",
                     Map.of("level", String.valueOf(maxLevel))));
             return false;
@@ -396,7 +393,6 @@ public class FlightManager {
         }
     }
 
-    // Ключевой метод для проверки полёта согласно требованиям
     public boolean shouldManageFlight(Player player) {
         return player.getAllowFlight() || activeFlightTimes.containsKey(player.getUniqueId());
     }
@@ -412,7 +408,6 @@ public class FlightManager {
         }
     }
 
-    // Геттеры остаются без изменений
     public Long getRemainingFlightTime(Player player) {
         UUID playerId = player.getUniqueId();
         if (activeFlightTimes.containsKey(playerId)) {

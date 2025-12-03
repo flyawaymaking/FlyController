@@ -1,5 +1,5 @@
 name: FlyController
-version: 1.1.0
+version: 1.1.1
 main: com.flyaway.flycontroller.FlyPlugin
 api-version: 1.21
 author: FlyAwayMaking

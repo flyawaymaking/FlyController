@@ -37,8 +37,4 @@ public class NumberFormatter {
     public static String formatWithCurrency(double number, String currencySymbol) {
         return format(number) + currencySymbol;
     }
-
-    public static String formatWithCurrency(double number, String currencySymbol, int decimalPlaces) {
-        return format(number, decimalPlaces) + currencySymbol;
-    }
 }

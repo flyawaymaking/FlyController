@@ -2,8 +2,8 @@ package com.flyaway.flycontroller.models;
 
 public class FlightTier {
     private final int level;
-    private final double minAmount; // Минимальная сумма для уровня
-    private final int duration; // в секундах
+    private final double minAmount;
+    private final int duration;
 
     public FlightTier(int level, double minAmount, int duration) {
         this.level = level;

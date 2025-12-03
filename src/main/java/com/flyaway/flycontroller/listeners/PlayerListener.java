@@ -84,7 +84,6 @@ public class PlayerListener implements Listener {
         }
     }
 
-    // Вспомогательные методы
     private boolean isFlyCommand(String message) {
         if (message.startsWith("/")) {
             message = message.substring(1);

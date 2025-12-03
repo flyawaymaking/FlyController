@@ -26,7 +26,7 @@ public class DataManager {
         FlightData data = new FlightData();
 
         if (!playerFile.exists()) {
-            return data; // Возвращаем пустые данные
+            return data;
         }
 
         FileConfiguration config = YamlConfiguration.loadConfiguration(playerFile);

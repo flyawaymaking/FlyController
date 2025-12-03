@@ -14,10 +14,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class MFlyCommand implements CommandExecutor, TabCompleter {
     private final FlyPlugin plugin;
@@ -115,14 +112,14 @@ public class MFlyCommand implements CommandExecutor, TabCompleter {
         UUID playerId = player.getUniqueId();
         FlightData data = plugin.getDataManager().loadPlayerData(playerId);
         String currencySymbol = plugin.getEconomyManager().getCurrencySymbol();
-        int currentLevel = flightManager.calculateFlightLevel(data.getBalance());
+        int currentLevel = data.getMaxUnlockedLevel();
 
         FlightTimeInfo timeInfo = getFlightTimeInfo(player, data, playerId);
 
-        StringBuilder infoMessage = buildBaseInfo(player, data, currencySymbol, currentLevel, timeInfo);
+        StringBuilder infoMessage = buildBaseInfo(data, currencySymbol, currentLevel, timeInfo);
 
         appendLevelsInfo(infoMessage, data, currencySymbol, currentLevel);
-        appendFlightStatus(infoMessage, timeInfo, data);
+        appendFlightStatus(infoMessage, timeInfo);
         appendSpeedsInfo(infoMessage);
 
         playerManager.sendMessage(player, infoMessage.toString());
@@ -153,7 +150,7 @@ public class MFlyCommand implements CommandExecutor, TabCompleter {
         return new FlightTimeInfo(remainingTime, pausedTime, cooldownTime);
     }
 
-    private StringBuilder buildBaseInfo(Player player, FlightData data, String currencySymbol, int currentLevel, FlightTimeInfo timeInfo) {
+    private StringBuilder buildBaseInfo(FlightData data, String currencySymbol, int currentLevel, FlightTimeInfo timeInfo) {
         StringBuilder infoMessage = new StringBuilder();
 
         infoMessage.append(configManager.getMessage("mfly-info", Map.of(
@@ -176,7 +173,7 @@ public class MFlyCommand implements CommandExecutor, TabCompleter {
         infoMessage.append("\n").append(configManager.getMessage("mfly-info-levels"));
 
         configManager.getFlightTiers().values().stream()
-                .sorted((t1, t2) -> Integer.compare(t1.getLevel(), t2.getLevel()))
+                .sorted(Comparator.comparingInt(FlightTier::getLevel))
                 .forEach(tier -> appendTierInfo(infoMessage, data, currencySymbol, currentLevel, tier));
     }
 
@@ -205,7 +202,7 @@ public class MFlyCommand implements CommandExecutor, TabCompleter {
         infoMessage.append("\n").append(levelLine);
     }
 
-    private void appendFlightStatus(StringBuilder infoMessage, FlightTimeInfo timeInfo, FlightData data) {
+    private void appendFlightStatus(StringBuilder infoMessage, FlightTimeInfo timeInfo) {
         if (timeInfo.remainingTime > 0) {
             String activeTime = TimeFormatter.formatTime(timeInfo.remainingTime, configManager);
             infoMessage.append("\n").append(configManager.getMessage("mfly-info-active-flight",
@@ -254,16 +251,14 @@ public class MFlyCommand implements CommandExecutor, TabCompleter {
     }
 
     private double getAmountForNextLevel(FlightData data) {
-        double currentBalance = data.getBalance();
-        int currentLevel = flightManager.calculateFlightLevel(currentBalance);
-        int nextLevel = currentLevel + 1;
+        int nextLevel = data.getMaxUnlockedLevel() + 1;
 
         FlightTier nextTier = configManager.getFlightTiers().get(nextLevel);
         if (nextTier == null) {
             return 0;
         }
 
-        return Math.max(0, nextTier.getMinAmount() - currentBalance);
+        return Math.max(0, nextTier.getMinAmount() - data.getBalance());
     }
 
     private String getSpeedName(int speed) {
@@ -289,7 +284,6 @@ public class MFlyCommand implements CommandExecutor, TabCompleter {
                 commands.add("reload");
             }
 
-            // Фильтрация по введённому тексту
             String input = args[0].toLowerCase();
             for (String cmd : commands) {
                 if (cmd.startsWith(input)) {
