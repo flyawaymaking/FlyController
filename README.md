@@ -163,7 +163,7 @@ worlds:
 
 - **Обязательно**: [CoinsEngine](https://github.com/nulli0n/CoinsEngine-spigot) (для экономики)
 - **Рекомендуется**: EssentialsX (для базового полёта)
-- **Поддержка**: Paper 1.21.8, Java 21
+- **Поддержка**: Paper 1.21.10, Java 21
 
 ---
 
